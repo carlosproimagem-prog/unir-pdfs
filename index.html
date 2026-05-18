@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Unir PDFs — Carlos Henrique</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #0d0d0d;
+      --paper: #f5f2ee;
+      --accent: #c8410a;
+      --accent2: #1a3a5c;
+      --mid: #e8e3dc;
+      --soft: #faf8f5;
+      --border: #d6cfc6;
+      --success: #1a6b3a;
+      --warn: #7a4500;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    #root { min-height: 100vh; }
+
+    /* LOADING SCREEN */
+    .splash {
+      position: fixed; inset: 0;
+      background: var(--ink);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 20px; z-index: 999;
+    }
+    .splash-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.2rem; font-weight: 800;
+      color: #fff; letter-spacing: -1px;
+    }
+    .splash-title span { color: var(--accent); }
+    .splash-bar {
+      width: 200px; height: 3px;
+      background: #333; border-radius: 3px; overflow: hidden;
+    }
+    .splash-fill {
+      height: 100%; width: 0%;
+      background: var(--accent);
+      animation: fill 2.5s ease-in-out forwards;
+    }
+    @keyframes fill { to { width: 100%; } }
+    .splash-sub { color: #888; font-size: .85rem; }
+
+    /* LAYOUT */
+    .app { max-width: 1100px; margin: 0 auto; padding: 32px 20px; }
+
+    header { margin-bottom: 40px; }
+    .header-top {
+      display: flex; align-items: baseline;
+      gap: 16px; flex-wrap: wrap;
+    }
+    .header-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.5rem; font-weight: 800;
+      letter-spacing: -1.5px; line-height: 1;
+    }
+    .header-title em { color: var(--accent); font-style: normal; }
+    .header-sub { color: #666; font-size: .95rem; margin-top: 6px; }
+    .header-badge {
+      background: var(--ink); color: #fff;
+      font-size: .7rem; font-family: 'Syne', sans-serif;
+      font-weight: 700; letter-spacing: 1px;
+      padding: 4px 10px; border-radius: 100px;
+      text-transform: uppercase;
+    }
+
+    /* GRID */
+    .grid { display: grid; grid-template-columns: 340px 1fr; gap: 24px; }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+
+    /* CARD */
+    .card {
+      background: var(--soft);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+    }
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--accent2);
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .step-num {
+      width: 24px; height: 24px;
+      background: var(--accent2); color: #fff;
+      border-radius: 50%;
+      font-size: .75rem; display: flex;
+      align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    /* FILE INPUT */
+    .file-drop {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .file-drop:hover { border-color: var(--accent); background: #fff; }
+    .file-drop input { display: none; }
+    .file-drop-icon { font-size: 2rem; margin-bottom: 8px; }
+    .file-drop-text { font-size: .85rem; color: #666; }
+    .file-drop-text strong { color: var(--accent); }
+
+    /* FORM */
+    .form-group { margin-bottom: 14px; }
+    label { font-size: .8rem; font-weight: 500; color: #555; display: block; margin-bottom: 5px; }
+    input[type="text"] {
+      width: 100%; padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px; font-size: .9rem;
+      font-family: 'DM Sans', sans-serif;
+      background: #fff; color: var(--ink);
+      outline: none; transition: border-color .2s;
+    }
+    input[type="text"]:focus { border-color: var(--accent2); }
+
+    /* BUTTONS */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px; padding: 10px 20px;
+      border: none; border-radius: 100px;
+      font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: .85rem; cursor: pointer;
+      transition: all .2s; letter-spacing: .3px;
+    }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-ai {
+      background: var(--ink); color: #fff; width: 100%;
+    }
+    .btn-ai:hover:not(:disabled) { background: var(--accent2); }
+    .btn-save {
+      background: var(--accent); color: #fff;
+      padding: 13px 36px; font-size: 1rem;
+    }
+    .btn-save:hover:not(:disabled) { background: #a33208; transform: translateY(-1px); }
+
+    /* SPIN */
+    .spin {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin .6s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* PREVIEW GRID */
+    .preview-area {
+      min-height: 260px; max-height: 580px;
+      overflow-y: auto; padding: 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 12px;
+      background: #fff; border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .empty-state {
+      grid-column: 1/-1; text-align: center;
+      color: #aaa; font-size: .9rem;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px; padding: 40px 0;
+    }
+    .empty-icon { font-size: 2.5rem; opacity: .4; }
+
+    /* PAGE CARD */
+    .page-card {
+      position: relative; border-radius: 10px;
+      border: 1.5px solid var(--border);
+      overflow: hidden; cursor: grab;
+      transition: box-shadow .15s, transform .15s;
+      background: var(--soft);
+    }
+    .page-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12); transform: translateY(-2px); }
+    .page-card.dragging { opacity: .4; transform: scale(.95); }
+    .page-card-thumb {
+      width: 100%; height: 100px;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .page-card-thumb img, .page-card-thumb canvas {
+      max-width: 100%; max-height: 100px;
+      object-fit: contain;
+    }
+    .page-card-info {
+      padding: 5px 7px 6px;
+      font-size: .7rem; color: #666;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      border-top: 1px solid var(--border);
+    }
+    .page-card-num {
+      position: absolute; top: 4px; left: 6px;
+      background: rgba(0,0,0,.55); color: #fff;
+      font-size: .65rem; font-weight: 700;
+      padding: 1px 6px; border-radius: 100px;
+    }
+    .page-card-del {
+      position: absolute; top: 4px; right: 4px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 50%; width: 20px; height: 20px;
+      cursor: pointer; font-size: .75rem;
+      display: none; align-items: center; justify-content: center;
+      line-height: 1; padding: 0;
+    }
+    .page-card:hover .page-card-del { display: flex; }
+
+    /* ALERTS */
+    .alert {
+      padding: 10px 14px; border-radius: 8px;
+      font-size: .82rem; margin-top: 12px;
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+    .alert-error { background: #fde8e8; color: #8b0000; border: 1px solid #f5b8b8; }
+    .alert-warn { background: #fff3cd; color: var(--warn); border: 1px solid #ffd970; }
+    .alert-success { background: #e6f4eb; color: var(--success); border: 1px solid #a3d9b3; }
+
+    /* FILENAME PREVIEW */
+    .filename-preview {
+      background: var(--mid); border-radius: 8px;
+      padding: 10px 14px; margin-top: 16px;
+      font-size: .78rem; color: #555;
+    }
+    .filename-preview strong {
+      display: block; font-family: 'Syne', sans-serif;
+      font-size: .72rem; text-transform: uppercase;
+      letter-spacing: .5px; color: #888; margin-bottom: 4px;
+    }
+    .filename-text {
+      font-family: monospace; color: var(--ink);
+      word-break: break-all; font-size: .82rem;
+    }
+
+    /* FOOTER */
+    footer {
+      text-align: center; margin-top: 48px;
+      color: #aaa; font-size: .8rem;
+      padding-bottom: 32px;
+    }
+    footer a { color: var(--accent2); text-decoration: none; }
+
+    /* COUNTER BADGE */
+    .count-badge {
+      background: var(--accent); color: #fff;
+      font-size: .7rem; font-weight: 700;
+      padding: 2px 8px; border-radius: 100px;
+      font-family: 'Syne', sans-serif;
+    }
+
+    /* API KEY section */
+    .api-section {
+      background: #fff8f0; border: 1px solid #f5d9b0;
+      border-radius: 10px; padding: 14px;
+      margin-bottom: 16px;
+    }
+    .api-section label { color: var(--warn); font-weight: 600; }
+    .api-section input { border-color: #f5d9b0; font-size: .8rem; }
+    .api-hint { font-size: .72rem; color: #999; margin-top: 4px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect, useCallback } = React;
+
+// ─── Page Preview Card ───────────────────────────────────────────────────────
+function PageCard({ page, index, onDelete, isDragging, onDragStart, onDragOver, onDrop, onDragEnd }) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (page.type === 'pdf' && page.pdfDoc && canvasRef.current) {
+      (async () => {
+        try {
+          const p = await page.pdfDoc.getPage(page.pageNumber);
+          const vp = p.getViewport({ scale: 1.2 });
+          const ctx = canvasRef.current.getContext('2d');
+          canvasRef.current.width = vp.width;
+          canvasRef.current.height = vp.height;
+          await p.render({ canvasContext: ctx, viewport: vp }).promise;
+        } catch(e) { console.warn('Render error', e); }
+      })();
+    }
+  }, [page]);
+
+  return (
+    <div
+      className={`page-card${isDragging ? ' dragging' : ''}`}
+      draggable
+      onDragStart={e => onDragStart(e, index)}
+      onDragOver={e => onDragOver(e, index)}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+    >
+      <div className="page-card-thumb">
+        {page.type === 'image'
+          ? <img src={page.dataUrl} alt="" />
+          : <canvas ref={canvasRef}></canvas>
+        }
+      </div>
+      <span className="page-card-num">{index + 1}</span>
+      <button className="page-card-del" onClick={() => onDelete(page.id)} title="Remover">✕</button>
+      <div className="page-card-info" title={page.file.name}>
+        {page.file.name} {page.type === 'pdf' ? `p.${page.pageNumber}` : ''}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
+function App() {
+  const [ready, setReady]           = useState(false);
+  const [pages, setPages]           = useState([]);
+  const [loading, setLoading]       = useState(false);
+  const [aiLoading, setAiLoading]   = useState(false);
+  const [error, setError]           = useState('');
+  const [warnMsg, setWarnMsg]       = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [geminiKey, setGeminiKey]   = useState('');
+  const [metadata, setMetadata] = useState({
+    dataPagamento: '', tipo: 'BOLETO E COMPROVANTE',
+    nomePrestador: '', valor: '',
+  });
+
+  // Load PDF.js — only need the main lib; worker is set via workerSrc (no need to load as tag)
+  useEffect(() => {
+    if (window.pdfjsLib && window.PDFLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      setReady(true);
+      return;
+    }
+    // pdf-lib already loaded via <script> tag in <head>
+    // pdf.js already loaded via <script> tag in <head>
+    // Just wait for them to be available
+    let attempts = 0;
+    const check = setInterval(() => {
+      attempts++;
+      if (window.pdfjsLib && window.PDFLib) {
+        clearInterval(check);
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        setReady(true);
+      }
+      if (attempts > 40) { // 4s timeout
+        clearInterval(check);
+        setError('Falha ao carregar bibliotecas. Verifique sua conexão e recarregue a página.');
+        setReady(true); // allow UI to show error
+      }
+    }, 100);
+    return () => clearInterval(check);
+  }, []);
+
+  // Derived filename preview
+  const filenamePreview = (() => {
+    const d = (metadata.dataPagamento || 'DATA').replace(/[^0-9.]/g,'');
+    const t = (metadata.tipo || 'TIPO').replace(/[^a-zA-Z0-9\s]/g,'_');
+    const n = (metadata.nomePrestador || 'PRESTADOR').replace(/[^a-zA-Z0-9\s]/g,'');
+    const v = (metadata.valor || 'VALOR').replace(/[^R$0-9.\s]/g,'').trim();
+    return `${d} ${t} ${n} ${v}.pdf`;
+  })();
+
+  // ── File handling ──
+  const handleFiles = async (files) => {
+    if (!window.pdfjsLib) { setError('Bibliotecas ainda carregando. Aguarde.'); return; }
+    setLoading(true); setError('');
+    const results = [];
+    for (const file of files) {
+      try {
+        if (file.type.startsWith('image/')) {
+          const dataUrl = await new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onload = e => res(e.target.result);
+            r.onerror = () => rej(new Error(`Erro ao ler ${file.name}`));
+            r.readAsDataURL(file);
+          });
+          results.push({ id: `${file.name}-${Date.now()}-${Math.random()}`, type: 'image', file, dataUrl, textContent: null });
+        } else if (file.type === 'application/pdf') {
+          const buf = await file.arrayBuffer();
+          const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+          let textContent = null;
+          if (file.name.toLowerCase().includes('comprovante')) {
+            const snippets = [];
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const pg = await pdf.getPage(i);
+              const tc = await pg.getTextContent();
+              snippets.push(...tc.items.map(it => it.str));
+            }
+            textContent = snippets.join(' ');
+          }
+          for (let i = 1; i <= pdf.numPages; i++) {
+            results.push({ id: `${file.name}-${Date.now()}-${Math.random()}-p${i}`, type: 'pdf', file, pdfDoc: pdf, pageNumber: i, textContent });
+          }
+        } else {
+          setError(`Tipo não suportado: ${file.name}`);
+        }
+      } catch(e) { setError(`Erro ao processar ${file.name}: ${e.message}`); }
+    }
+    setPages(prev => [...prev, ...results]);
+    setLoading(false);
+  };
+
+  const handleFileInput = e => handleFiles(Array.from(e.target.files));
+
+  // ── Drag & Drop on preview ──
+  const handleDragStart = (e, index) => { setDraggedItem(pages[index]); };
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (!draggedItem || draggedItem.id === pages[index].id) return;
+    const arr = [...pages];
+    const from = arr.findIndex(p => p.id === draggedItem.id);
+    const [item] = arr.splice(from, 1);
+    arr.splice(index, 0, item);
+    setPages(arr);
+  };
+  const handleDrop = e => { e.preventDefault(); setDraggedItem(null); };
+  const handleDragEnd = () => setDraggedItem(null);
+  const handleDelete = id => setPages(prev => prev.filter(p => p.id !== id));
+
+  // ── AI Suggestion ──
+  const suggestWithAI = async () => {
+    if (!geminiKey.trim()) {
+      setError('Insira sua chave de API do Google Gemini para usar a sugestão IA.');
+      return;
+    }
+    if (pages.length === 0) { setError('Adicione arquivos primeiro.'); return; }
+    setAiLoading(true); setError(''); setWarnMsg(''); setSuccessMsg('');
+
+    const fileNames = [...new Set(pages.map(p => p.file.name))].join(', ');
+    const receiptText = pages
+      .filter(p => p.textContent)
+      .map(p => p.textContent)
+      .filter((t, i, s) => s.indexOf(t) === i)
+      .join('\n\n---\n\n');
+
+    let prompt = `Analise os nomes de arquivos${receiptText ? ' e o texto de comprovante' : ''} abaixo e extraia metadados.\n\nArquivos: ${fileNames}`;
+    if (receiptText) prompt += `\n\nTexto do comprovante:\n"""${receiptText.slice(0, 4000)}"""`;
+    prompt += `\n\nExtraia: dataPagamento (DD.MM.YY com pontos, ex: 05.12.25), valor (prefixo "R$ " e use PONTOS para decimais e milhares, ex: R$ 1.313.07), nomePrestador (quem recebeu), statusPagamento (pago | agendado | a verificar). Responda SOMENTE JSON.`;
+
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey.trim()}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: 'application/json' }
+          })
+        }
+      );
+      if (!res.ok) throw new Error(`API retornou ${res.status}: ${res.statusText}`);
+      const data = await res.json();
+      const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      const json = JSON.parse(raw.replace(/```json|```/g, '').trim());
+      setMetadata(prev => ({
+        ...prev,
+        dataPagamento: json.dataPagamento || prev.dataPagamento,
+        valor: json.valor || prev.valor,
+        nomePrestador: json.nomePrestador || prev.nomePrestador,
+      }));
+      const st = (json.statusPagamento || '').toLowerCase();
+      if (st.includes('agendado') || st.includes('a verificar') || st.includes('pendente')) {
+        setWarnMsg(`⚠️ Status: "${json.statusPagamento}". Verifique se o pagamento foi concluído.`);
+      } else if (st.includes('pago')) {
+        setSuccessMsg(`✓ Pagamento identificado como "${json.statusPagamento}".`);
+      }
+    } catch(e) {
+      setError(`Erro na IA: ${e.message}`);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // ── Generate PDF ──
+  const generatePDF = async () => {
+    if (!window.PDFLib) { setError('Biblioteca PDF não carregada.'); return; }
+    if (pages.length === 0) { setError('Adicione arquivos primeiro.'); return; }
+    setLoading(true); setError('');
+    try {
+      const { PDFDocument } = window.PDFLib;
+      const doc = await PDFDocument.create();
+
+      for (const pg of pages) {
+        if (pg.type === 'image') {
+          const bytes = await fetch(pg.dataUrl).then(r => r.arrayBuffer());
+          const img = pg.file.type === 'image/jpeg'
+            ? await doc.embedJpg(bytes)
+            : await doc.embedPng(bytes);
+          const page = doc.addPage();
+          const { width, height } = page.getSize();
+          const dims = img.scaleToFit(width - 40, height - 40);
+          page.drawImage(img, {
+            x: (width - dims.width) / 2, y: (height - dims.height) / 2,
+            width: dims.width, height: dims.height,
+          });
+        } else if (pg.type === 'pdf') {
+          const bytes = await pg.file.arrayBuffer();
+          const src = await PDFDocument.load(bytes);
+          const [copied] = await doc.copyPages(src, [pg.pageNumber - 1]);
+          doc.addPage(copied);
+        }
+      }
+
+      const bytes = await doc.save();
+      const d = (metadata.dataPagamento || 'SemData').replace(/[^0-9.]/g,'');
+      const t = (metadata.tipo || 'Documento').replace(/[^a-zA-Z0-9]/g,'_');
+      const n = (metadata.nomePrestador || 'SemPrestador').replace(/[^a-zA-Z0-9\s]/g,'');
+      const v = (metadata.valor || 'SemValor').replace(/[^R$0-9.\s]/g,'').trim();
+      const filename = `${d} ${t} ${n} ${v}.pdf`;
+
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      setSuccessMsg(`PDF salvo como: ${filename}`);
+    } catch(e) {
+      setError(`Erro ao gerar PDF: ${e.message}`);
+    } finally { setLoading(false); }
+  };
+
+  // ─── SPLASH ───
+  if (!ready) {
+    return (
+      <div className="splash">
+        <div className="splash-title">Unir <span>PDFs</span></div>
+        <div className="splash-bar"><div className="splash-fill"></div></div>
+        <div className="splash-sub">Carregando bibliotecas…</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app">
+      <header>
+        <div className="header-top">
+          <h1 className="header-title">Unir <em>PDFs</em></h1>
+          <span className="header-badge">IA + PDF-Lib</span>
+        </div>
+        <p className="header-sub">Junte, organize e nomeie seus arquivos em um único PDF com auxílio de IA.</p>
+      </header>
+
+      <div className="grid">
+        {/* ── COLUNA ESQUERDA ── */}
+        <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
+
+          {/* Adicionar arquivos */}
+          <div className="card">
+            <div className="card-title"><span className="step-num">1</span> Adicionar Arquivos</div>
+            <label htmlFor="file-in" style={{cursor:'pointer'}}>
+              <div className="file-drop">
+                <div className="file-drop-icon">📄</div>
+                <div className="file-drop-text">
+                  <strong>Clique para selecionar</strong> ou arraste aqui<br/>
+                  JPG, PNG ou PDF
+                </div>
+              </div>
+              <input id="file-in" type="file" multiple accept="image/jpeg,image/png,application/pdf" onChange={handleFileInput} />
+            </label>
+            {loading && <p style={{marginTop:10,fontSize:'.85rem',color:'#555',display:'flex',alignItems:'center',gap:8}}><span className="spin" style={{borderTopColor:'#555',borderColor:'#ccc'}}></span> Processando…</p>}
+          </div>
+
+          {/* Detalhes */}
+          <div className="card">
+            <div className="card-title"><span className="step-num">2</span> Detalhes do Arquivo</div>
+
+            <div className="api-section">
+              <label>🔑 Chave API Gemini</label>
+              <input type="text" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} placeholder="AIza..." />
+              <p className="api-hint">Obtenha grátis em <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">aistudio.google.com</a></p>
+            </div>
+
+            <div className="form-group">
+              <label>Data de Pagamento</label>
+              <input type="text" value={metadata.dataPagamento} onChange={e => setMetadata(p=>({...p,dataPagamento:e.target.value}))} placeholder="Ex: 05.12.25" />
+            </div>
+            <div className="form-group">
+              <label>Tipo (Boleto, Comprovante…)</label>
+              <input type="text" value={metadata.tipo} onChange={e => setMetadata(p=>({...p,tipo:e.target.value}))} placeholder="Ex: BOLETO E COMPROVANTE" />
+            </div>
+            <div className="form-group">
+              <label>Nome do Prestador / Beneficiário</label>
+              <input type="text" value={metadata.nomePrestador} onChange={e => setMetadata(p=>({...p,nomePrestador:e.target.value}))} placeholder="Ex: Eletrobras" />
+            </div>
+            <div className="form-group">
+              <label>Valor</label>
+              <input type="text" value={metadata.valor} onChange={e => setMetadata(p=>({...p,valor:e.target.value}))} placeholder="Ex: R$ 123.45" />
+            </div>
+
+            <button className="btn btn-ai" onClick={suggestWithAI} disabled={pages.length===0 || aiLoading}>
+              {aiLoading ? <><span className="spin"></span> Analisando…</> : '✨ Sugerir com IA'}
+            </button>
+
+            {/* Alerts */}
+            {error    && <div className="alert alert-error">⚠ {error}</div>}
+            {warnMsg  && <div className="alert alert-warn">{warnMsg}</div>}
+            {successMsg && <div className="alert alert-success">{successMsg}</div>}
+
+            {/* Filename preview */}
+            <div className="filename-preview">
+              <strong>Nome do arquivo gerado</strong>
+              <div className="filename-text">{filenamePreview}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── COLUNA DIREITA ── */}
+        <div className="card" style={{display:'flex', flexDirection:'column', gap:'16px'}}>
+          <div className="card-title">
+            <span className="step-num">3</span> Organizar Páginas
+            {pages.length > 0 && <span className="count-badge">{pages.length} página{pages.length!==1?'s':''}</span>}
+          </div>
+          <p style={{fontSize:'.82rem',color:'#888',marginTop:-8}}>Arraste para reordenar. Passe o mouse para excluir.</p>
+
+          <div className="preview-area">
+            {pages.length === 0
+              ? <div className="empty-state"><div className="empty-icon">🗂</div>Nenhuma página adicionada ainda.</div>
+              : pages.map((pg, i) => (
+                  <PageCard
+                    key={pg.id} page={pg} index={i}
+                    onDelete={handleDelete}
+                    isDragging={draggedItem?.id === pg.id}
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                    onDragEnd={handleDragEnd}
+                  />
+                ))
+            }
+          </div>
+
+          <div style={{display:'flex', justifyContent:'flex-end', marginTop:'auto', paddingTop:8}}>
+            <button className="btn btn-save" onClick={generatePDF} disabled={pages.length===0 || loading || !ready}>
+              {loading
+                ? <><span className="spin"></span> Gerando…</>
+                : <><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> Salvar PDF Final</>
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <p>© {new Date().getFullYear()} Desenvolvido por Carlos Henrique · React + PDF-Lib + Gemini AI</p>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
