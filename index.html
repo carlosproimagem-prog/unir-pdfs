@@ -276,12 +276,12 @@
 
     /* API KEY section */
     .api-section {
-      background: #fff8f0; border: 1px solid #f5d9b0;
+      background: #f0f4ff; border: 1px solid #b8c8f0;
       border-radius: 10px; padding: 14px;
       margin-bottom: 16px;
     }
-    .api-section label { color: var(--warn); font-weight: 600; }
-    .api-section input { border-color: #f5d9b0; font-size: .8rem; }
+    .api-section label { color: var(--accent2); font-weight: 600; }
+    .api-section input { border-color: #b8c8f0; font-size: .8rem; font-family: monospace; }
     .api-hint { font-size: .72rem; color: #999; margin-top: 4px; }
   </style>
 </head>
@@ -344,7 +344,7 @@ function App() {
   const [warnMsg, setWarnMsg]       = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [draggedItem, setDraggedItem] = useState(null);
-  const [geminiKey, setGeminiKey]   = useState('');
+  const [claudeKey, setClaudeKey]   = useState('');
   const [metadata, setMetadata] = useState({
     dataPagamento: '', tipo: 'BOLETO E COMPROVANTE',
     nomePrestador: '', valor: '',
@@ -447,8 +447,8 @@ function App() {
 
   // ── AI Suggestion ──
   const suggestWithAI = async () => {
-    if (!geminiKey.trim()) {
-      setError('Insira sua chave de API do Google Gemini para usar a sugestão IA.');
+    if (!claudeKey.trim()) {
+      setError('Insira sua chave de API da Anthropic (Claude) para usar a sugestão IA.');
       return;
     }
     if (pages.length === 0) { setError('Adicione arquivos primeiro.'); return; }
@@ -463,30 +463,47 @@ function App() {
 
     let prompt = `Analise os nomes de arquivos${receiptText ? ' e o texto de comprovante' : ''} abaixo e extraia metadados.\n\nArquivos: ${fileNames}`;
     if (receiptText) prompt += `\n\nTexto do comprovante:\n"""${receiptText.slice(0, 4000)}"""`;
-    prompt += `\n\nExtraia: dataPagamento (DD.MM.YY com pontos, ex: 05.12.25), valor (prefixo "R$ " e use PONTOS para decimais e milhares, ex: R$ 1.313.07), nomePrestador (quem recebeu), statusPagamento (pago | agendado | a verificar). Responda SOMENTE JSON.`;
+    prompt += `\n\nExtraia os seguintes campos e responda SOMENTE com JSON válido, sem markdown, sem explicação:
+{
+  "dataPagamento": "DD.MM.YY (use pontos, ex: 05.12.25)",
+  "valor": "R$ X.XXX.XX (prefixo R$, use PONTOS para decimais e milhares, ex: R$ 1.313.07)",
+  "nomePrestador": "nome de quem recebeu o valor",
+  "statusPagamento": "pago | agendado | a verificar"
+}
+Se um campo não for encontrado, retorne string vazia.`;
 
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey.trim()}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: 'application/json' }
-          })
-        }
-      );
-      if (!res.ok) throw new Error(`API retornou ${res.status}: ${res.statusText}`);
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': claudeKey.trim(),
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 512,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error?.message || `Erro ${res.status}: ${res.statusText}`);
+      }
+
       const data = await res.json();
-      const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      const raw = data.content?.[0]?.text || '{}';
       const json = JSON.parse(raw.replace(/```json|```/g, '').trim());
+
       setMetadata(prev => ({
         ...prev,
         dataPagamento: json.dataPagamento || prev.dataPagamento,
         valor: json.valor || prev.valor,
         nomePrestador: json.nomePrestador || prev.nomePrestador,
       }));
+
       const st = (json.statusPagamento || '').toLowerCase();
       if (st.includes('agendado') || st.includes('a verificar') || st.includes('pendente')) {
         setWarnMsg(`⚠️ Status: "${json.statusPagamento}". Verifique se o pagamento foi concluído.`);
@@ -596,9 +613,9 @@ function App() {
             <div className="card-title"><span className="step-num">2</span> Detalhes do Arquivo</div>
 
             <div className="api-section">
-              <label>🔑 Chave API Gemini</label>
-              <input type="text" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} placeholder="AIza..." />
-              <p className="api-hint">Obtenha grátis em <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">aistudio.google.com</a></p>
+              <label>🤖 Chave API Claude (Anthropic)</label>
+              <input type="password" value={claudeKey} onChange={e => setClaudeKey(e.target.value)} placeholder="sk-ant-..." />
+              <p className="api-hint">Obtenha em <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">console.anthropic.com</a> — necessária apenas para usar a IA</p>
             </div>
 
             <div className="form-group">
@@ -672,7 +689,7 @@ function App() {
       </div>
 
       <footer>
-        <p>© {new Date().getFullYear()} Desenvolvido por Carlos Henrique · React + PDF-Lib + Gemini AI</p>
+        <p>© {new Date().getFullYear()} Desenvolvido por Carlos Henrique · React + PDF-Lib + Claude AI (Anthropic)</p>
       </footer>
     </div>
   );
