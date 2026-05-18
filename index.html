@@ -1,397 +1,278 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Unir PDFs — Carlos Henrique</title>
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PDFusion — Unir Documentos</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080810;--surface:#10101c;--s2:#161624;--s3:#1e1e30;
+  --border:#252538;--border2:#32324e;
+  --text:#e4e4f0;--muted:#5a5a7a;
+  --accent:#7c6af7;--accent-h:rgba(124,106,247,.18);
+  --accent2:#f7916a;--green:#4ade80;--yellow:#fbbf24;--red:#f87171;
+  --r:14px;--font:'Syne',sans-serif;--body:'Inter',sans-serif;
+}
+body{font-family:var(--body);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+#root{min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:
+  radial-gradient(ellipse 60% 40% at 80% 10%,rgba(124,106,247,.07) 0%,transparent 60%),
+  radial-gradient(ellipse 50% 35% at 10% 90%,rgba(247,145,106,.05) 0%,transparent 60%);
+  pointer-events:none;z-index:0}
 
-    :root {
-      --ink: #0d0d0d;
-      --paper: #f5f2ee;
-      --accent: #c8410a;
-      --accent2: #1a3a5c;
-      --mid: #e8e3dc;
-      --soft: #faf8f5;
-      --border: #d6cfc6;
-      --success: #1a6b3a;
-      --warn: #7a4500;
-    }
+/* SPLASH */
+.splash{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:999}
+.splash-wordmark{font-family:var(--font);font-size:2.8rem;font-weight:800;background:linear-gradient(135deg,#fff 30%,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1.5px}
+.splash-wordmark em{font-style:normal;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text}
+.splash-track{width:160px;height:2px;background:var(--border2);border-radius:2px;overflow:hidden}
+.splash-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));animation:load 2.5s ease-in-out forwards;width:0}
+@keyframes load{to{width:100%}}
+.splash-sub{color:var(--muted);font-size:.78rem;letter-spacing:.5px}
 
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--paper);
-      color: var(--ink);
-      min-height: 100vh;
-    }
+/* APP */
+.app{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:40px 20px 64px}
 
-    #root { min-height: 100vh; }
+/* HEADER */
+.hdr{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:44px}
+.wordmark{font-family:var(--font);font-size:2rem;font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,#fff 40%,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.wordmark em{font-style:normal;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text}
+.hdr-sub{color:var(--muted);font-size:.85rem;margin-top:3px}
+.badge{background:var(--s2);border:1px solid var(--border2);padding:5px 13px;border-radius:100px;font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.badge-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
 
-    /* LOADING SCREEN */
-    .splash {
-      position: fixed; inset: 0;
-      background: var(--ink);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 20px; z-index: 999;
-    }
-    .splash-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 2.2rem; font-weight: 800;
-      color: #fff; letter-spacing: -1px;
-    }
-    .splash-title span { color: var(--accent); }
-    .splash-bar {
-      width: 200px; height: 3px;
-      background: #333; border-radius: 3px; overflow: hidden;
-    }
-    .splash-fill {
-      height: 100%; width: 0%;
-      background: var(--accent);
-      animation: fill 2.5s ease-in-out forwards;
-    }
-    @keyframes fill { to { width: 100%; } }
-    .splash-sub { color: #888; font-size: .85rem; }
+/* GRID */
+.grid{display:grid;grid-template-columns:350px 1fr;gap:18px;align-items:start}
+@media(max-width:780px){.grid{grid-template-columns:1fr}}
 
-    /* LAYOUT */
-    .app { max-width: 1100px; margin: 0 auto; padding: 32px 20px; }
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
+.ch{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.ch-ic{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0}
+.ch-title{font-family:var(--font);font-size:.9rem;font-weight:700;color:#fff}
+.ch-sub{font-size:.7rem;color:var(--muted);margin-top:1px}
+.cb{padding:18px 20px}
 
-    header { margin-bottom: 40px; }
-    .header-top {
-      display: flex; align-items: baseline;
-      gap: 16px; flex-wrap: wrap;
-    }
-    .header-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 2.5rem; font-weight: 800;
-      letter-spacing: -1.5px; line-height: 1;
-    }
-    .header-title em { color: var(--accent); font-style: normal; }
-    .header-sub { color: #666; font-size: .95rem; margin-top: 6px; }
-    .header-badge {
-      background: var(--ink); color: #fff;
-      font-size: .7rem; font-family: 'Syne', sans-serif;
-      font-weight: 700; letter-spacing: 1px;
-      padding: 4px 10px; border-radius: 100px;
-      text-transform: uppercase;
-    }
+/* DROP */
+.drop{border:1.5px dashed var(--border2);border-radius:9px;padding:28px 16px;text-align:center;cursor:pointer;transition:.2s;background:var(--s2);position:relative}
+.drop:hover{border-color:var(--accent);background:var(--accent-h)}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-ic{font-size:2rem;display:block;margin-bottom:8px}
+.drop-txt{font-size:.82rem;color:var(--muted);line-height:1.6}
+.drop-txt strong{color:var(--accent);font-weight:500}
 
-    /* GRID */
-    .grid { display: grid; grid-template-columns: 340px 1fr; gap: 24px; }
-    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+/* DIVIDER */
+.div{height:1px;background:var(--border);margin:18px 0}
 
-    /* CARD */
-    .card {
-      background: var(--soft);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 28px;
-    }
-    .card-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 1rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 1px;
-      color: var(--accent2);
-      display: flex; align-items: center; gap: 8px;
-      margin-bottom: 20px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    .step-num {
-      width: 24px; height: 24px;
-      background: var(--accent2); color: #fff;
-      border-radius: 50%;
-      font-size: .75rem; display: flex;
-      align-items: center; justify-content: center;
-      font-family: 'Syne', sans-serif; font-weight: 800;
-      flex-shrink: 0;
-    }
+/* FORM */
+.fl{font-size:.72rem;font-weight:500;color:var(--muted);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.6px}
+.fi{width:100%;padding:9px 11px;background:var(--s2);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-size:.87rem;font-family:var(--body);outline:none;transition:.2s;margin-bottom:11px}
+.fi:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-h)}
+.fi::placeholder{color:var(--muted)}
+.fi.ok{border-color:rgba(74,222,128,.4);background:rgba(74,222,128,.03)}
 
-    /* FILE INPUT */
-    .file-drop {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
-      padding: 24px 16px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color .2s, background .2s;
-    }
-    .file-drop:hover { border-color: var(--accent); background: #fff; }
-    .file-drop input { display: none; }
-    .file-drop-icon { font-size: 2rem; margin-bottom: 8px; }
-    .file-drop-text { font-size: .85rem; color: #666; }
-    .file-drop-text strong { color: var(--accent); }
+/* DETECT STRIP */
+.ds{background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.18);border-radius:8px;padding:9px 12px;margin-bottom:14px;font-size:.77rem;color:var(--green);display:flex;align-items:flex-start;gap:7px;line-height:1.5}
 
-    /* FORM */
-    .form-group { margin-bottom: 14px; }
-    label { font-size: .8rem; font-weight: 500; color: #555; display: block; margin-bottom: 5px; }
-    input[type="text"] {
-      width: 100%; padding: 9px 12px;
-      border: 1px solid var(--border);
-      border-radius: 8px; font-size: .9rem;
-      font-family: 'DM Sans', sans-serif;
-      background: #fff; color: var(--ink);
-      outline: none; transition: border-color .2s;
-    }
-    input[type="text"]:focus { border-color: var(--accent2); }
+/* FILENAME BOX */
+.fnbox{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:12px 14px}
+.fnlabel{font-size:.67rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;margin-bottom:6px}
+.fnval{font-family:monospace;font-size:.79rem;color:var(--accent2);word-break:break-all;line-height:1.55}
+.fnempty{font-size:.79rem;color:var(--muted);font-style:italic}
 
-    /* BUTTONS */
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      gap: 8px; padding: 10px 20px;
-      border: none; border-radius: 100px;
-      font-family: 'Syne', sans-serif; font-weight: 700;
-      font-size: .85rem; cursor: pointer;
-      transition: all .2s; letter-spacing: .3px;
-    }
-    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-    .btn-ai {
-      background: var(--ink); color: #fff; width: 100%;
-    }
-    .btn-ai:hover:not(:disabled) { background: var(--accent2); }
-    .btn-save {
-      background: var(--accent); color: #fff;
-      padding: 13px 36px; font-size: 1rem;
-    }
-    .btn-save:hover:not(:disabled) { background: #a33208; transform: translateY(-1px); }
+/* ALERTS */
+.al{padding:9px 12px;border-radius:8px;font-size:.78rem;margin-top:10px;display:flex;gap:7px;align-items:flex-start;line-height:1.5}
+.al-e{background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);color:var(--red)}
+.al-s{background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.2);color:var(--green)}
 
-    /* SPIN */
-    .spin {
-      width: 16px; height: 16px;
-      border: 2px solid rgba(255,255,255,.3);
-      border-top-color: #fff; border-radius: 50%;
-      animation: spin .6s linear infinite; flex-shrink: 0;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+/* PREVIEW */
+.pv-wrap{min-height:280px;background:var(--s2);border-radius:9px;padding:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:11px;max-height:520px;overflow-y:auto}
+.pv-wrap::-webkit-scrollbar{width:4px}
+.pv-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 0;color:var(--muted);gap:10px}
+.empty-ic{font-size:2.5rem;opacity:.25}
+.empty-tx{font-size:.82rem;text-align:center;line-height:1.6}
 
-    /* PREVIEW GRID */
-    .preview-area {
-      min-height: 260px; max-height: 580px;
-      overflow-y: auto; padding: 16px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 12px;
-      background: #fff; border-radius: 12px;
-      border: 1px solid var(--border);
-    }
-    .empty-state {
-      grid-column: 1/-1; text-align: center;
-      color: #aaa; font-size: .9rem;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 10px; padding: 40px 0;
-    }
-    .empty-icon { font-size: 2.5rem; opacity: .4; }
+/* PAGE CARD */
+.pc{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:9px;overflow:hidden;cursor:grab;transition:.15s}
+.pc:hover{border-color:var(--border2);box-shadow:0 4px 18px rgba(0,0,0,.5);transform:translateY(-2px)}
+.pc.drag{opacity:.3;transform:scale(.94)}
+.pc-thumb{width:100%;height:105px;display:flex;align-items:center;justify-content:center;background:var(--s2);overflow:hidden}
+.pc-thumb img,.pc-thumb canvas{max-width:100%;max-height:105px;object-fit:contain}
+.pc-name{padding:5px 7px 6px;border-top:1px solid var(--border);font-size:.65rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-num{position:absolute;top:5px;left:5px;background:rgba(0,0,0,.65);color:#fff;font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:5px;backdrop-filter:blur(4px)}
+.pc-del{position:absolute;top:5px;right:5px;background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.25);border-radius:5px;width:21px;height:21px;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:.75rem;backdrop-filter:blur(4px);transition:.15s}
+.pc-del:hover{background:rgba(248,113,113,.28)}
+.pc:hover .pc-del{display:flex}
 
-    /* PAGE CARD */
-    .page-card {
-      position: relative; border-radius: 10px;
-      border: 1.5px solid var(--border);
-      overflow: hidden; cursor: grab;
-      transition: box-shadow .15s, transform .15s;
-      background: var(--soft);
-    }
-    .page-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12); transform: translateY(-2px); }
-    .page-card.dragging { opacity: .4; transform: scale(.95); }
-    .page-card-thumb {
-      width: 100%; height: 100px;
-      display: flex; align-items: center; justify-content: center;
-      overflow: hidden;
-    }
-    .page-card-thumb img, .page-card-thumb canvas {
-      max-width: 100%; max-height: 100px;
-      object-fit: contain;
-    }
-    .page-card-info {
-      padding: 5px 7px 6px;
-      font-size: .7rem; color: #666;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      border-top: 1px solid var(--border);
-    }
-    .page-card-num {
-      position: absolute; top: 4px; left: 6px;
-      background: rgba(0,0,0,.55); color: #fff;
-      font-size: .65rem; font-weight: 700;
-      padding: 1px 6px; border-radius: 100px;
-    }
-    .page-card-del {
-      position: absolute; top: 4px; right: 4px;
-      background: var(--accent); color: #fff;
-      border: none; border-radius: 50%; width: 20px; height: 20px;
-      cursor: pointer; font-size: .75rem;
-      display: none; align-items: center; justify-content: center;
-      line-height: 1; padding: 0;
-    }
-    .page-card:hover .page-card-del { display: flex; }
+/* BOTTOM BAR */
+.bot{margin-top:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.pg-count{font-size:.8rem;color:var(--muted)}
+.pg-count strong{color:var(--text);font-weight:600}
+.btn-clr{background:none;border:1px solid var(--border2);color:var(--muted);padding:7px 13px;border-radius:7px;font-size:.76rem;cursor:pointer;font-family:var(--body);transition:.15s}
+.btn-clr:hover{border-color:var(--red);color:var(--red)}
+.btn-gen{background:linear-gradient(135deg,var(--accent),#9b8cf9);border:none;color:#fff;padding:10px 26px;border-radius:9px;font-family:var(--font);font-size:.88rem;font-weight:700;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:7px;box-shadow:0 4px 14px rgba(124,106,247,.35)}
+.btn-gen:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 22px rgba(124,106,247,.5)}
+.btn-gen:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
 
-    /* ALERTS */
-    .alert {
-      padding: 10px 14px; border-radius: 8px;
-      font-size: .82rem; margin-top: 12px;
-      display: flex; align-items: flex-start; gap: 8px;
-    }
-    .alert-error { background: #fde8e8; color: #8b0000; border: 1px solid #f5b8b8; }
-    .alert-warn { background: #fff3cd; color: var(--warn); border: 1px solid #ffd970; }
-    .alert-success { background: #e6f4eb; color: var(--success); border: 1px solid #a3d9b3; }
+/* SPINNER */
+.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.15);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-    /* FILENAME PREVIEW */
-    .filename-preview {
-      background: var(--mid); border-radius: 8px;
-      padding: 10px 14px; margin-top: 16px;
-      font-size: .78rem; color: #555;
-    }
-    .filename-preview strong {
-      display: block; font-family: 'Syne', sans-serif;
-      font-size: .72rem; text-transform: uppercase;
-      letter-spacing: .5px; color: #888; margin-bottom: 4px;
-    }
-    .filename-text {
-      font-family: monospace; color: var(--ink);
-      word-break: break-all; font-size: .82rem;
-    }
+/* LOADING LINE */
+.ldline{display:flex;align-items:center;gap:8px;margin-top:11px;font-size:.8rem;color:var(--muted)}
 
-    /* FOOTER */
-    footer {
-      text-align: center; margin-top: 48px;
-      color: #aaa; font-size: .8rem;
-      padding-bottom: 32px;
-    }
-    footer a { color: var(--accent2); text-decoration: none; }
-
-    /* COUNTER BADGE */
-    .count-badge {
-      background: var(--accent); color: #fff;
-      font-size: .7rem; font-weight: 700;
-      padding: 2px 8px; border-radius: 100px;
-      font-family: 'Syne', sans-serif;
-    }
-
-    /* API KEY section */
-    .api-section {
-      background: #f0f4ff; border: 1px solid #b8c8f0;
-      border-radius: 10px; padding: 14px;
-      margin-bottom: 16px;
-    }
-    .api-section label { color: var(--accent2); font-weight: 600; }
-    .api-section input { border-color: #b8c8f0; font-size: .8rem; font-family: monospace; }
-    .api-hint { font-size: .72rem; color: #999; margin-top: 4px; }
-  </style>
+/* FOOTER */
+footer{text-align:center;margin-top:56px;color:var(--muted);font-size:.75rem;padding-bottom:16px}
+</style>
 </head>
 <body>
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useRef, useEffect, useCallback } = React;
+const { useState, useRef, useEffect } = React;
 
-// ─── Page Preview Card ───────────────────────────────────────────────────────
-function PageCard({ page, index, onDelete, isDragging, onDragStart, onDragOver, onDrop, onDragEnd }) {
+/* ─── Smart auto-parser from filenames (no AI) ─────────────────────────── */
+function smartParse(files) {
+  const names  = files.map(f => f.name).join(' ');
+  const result = { data: '', prestador: '', valor: '' };
+
+  // ── Date ──
+  const datePats = [
+    { re: /(\d{2})[.\-_\/](\d{2})[.\-_\/](\d{4})/, fn: m => `${m[1]}.${m[2]}.${m[3].slice(2)}` },
+    { re: /(\d{2})[.\-_\/](\d{2})[.\-_\/](\d{2})(?!\d)/, fn: m => `${m[1]}.${m[2]}.${m[3]}` },
+    { re: /(\d{4})(\d{2})(\d{2})(?!\d)/, fn: m => `${m[3]}.${m[2]}.${m[1].slice(2)}` },
+  ];
+  for (const { re, fn } of datePats) {
+    const m = names.match(re);
+    if (m) { result.data = fn(m); break; }
+  }
+
+  // ── Value ──
+  const valPats = [
+    /[Rr]\$\s*([\d]{1,3}(?:[.,]\d{3})*[.,]\d{2})/,
+    /[Rr]\$\s*(\d+[.,]\d{2})/,
+    /(\d{1,3}(?:\.\d{3})+,\d{2})/,
+    /(\d+,\d{2})(?!\d)/,
+  ];
+  for (const re of valPats) {
+    const m = names.match(re);
+    if (m) {
+      let v = m[1].replace(/\./g,'').replace(',','.');
+      result.valor = `R$ ${v}`;
+      break;
+    }
+  }
+
+  // ── Provider: capitalized words not in stoplist ──
+  const stop = new Set(['boleto','comprovante','nota','fiscal','recibo','pagamento','pago','pdf',
+    'jpg','png','scan','arquivo','documento','file','the','and','para','com','por','de','do','da',
+    'em','no','na','os','as','um','uma','mes','ref','ref','pg','pg','pag','num','nf','nfe']);
+  const candidates = files.flatMap(f =>
+    f.name.replace(/\.[^.]+$/, '').replace(/[_\-\.]/g,' ').split(/\s+/)
+      .filter(w => w.length >= 3 && /^[A-ZÁÉÍÓÚÂÊÎÔÛÃÕ]/i.test(w) && !/^\d/.test(w) && !stop.has(w.toLowerCase()))
+  );
+  const unique = [...new Set(candidates)];
+  if (unique.length) result.prestador = unique.slice(0,3).join(' ');
+
+  return result;
+}
+
+/* ─── Page thumbnail card ───────────────────────────────────────────────── */
+function PageCard({ page, index, isDragging, onDelete, onDragStart, onDragOver, onDrop, onDragEnd }) {
   const canvasRef = useRef(null);
-
   useEffect(() => {
     if (page.type === 'pdf' && page.pdfDoc && canvasRef.current) {
       (async () => {
         try {
-          const p = await page.pdfDoc.getPage(page.pageNumber);
-          const vp = p.getViewport({ scale: 1.2 });
+          const pg = await page.pdfDoc.getPage(page.pageNumber);
+          const vp = pg.getViewport({ scale: 1.5 });
           const ctx = canvasRef.current.getContext('2d');
-          canvasRef.current.width = vp.width;
+          canvasRef.current.width  = vp.width;
           canvasRef.current.height = vp.height;
-          await p.render({ canvasContext: ctx, viewport: vp }).promise;
-        } catch(e) { console.warn('Render error', e); }
+          await pg.render({ canvasContext: ctx, viewport: vp }).promise;
+        } catch {}
       })();
     }
   }, [page]);
 
   return (
     <div
-      className={`page-card${isDragging ? ' dragging' : ''}`}
+      className={`pc${isDragging ? ' drag' : ''}`}
       draggable
       onDragStart={e => onDragStart(e, index)}
       onDragOver={e => onDragOver(e, index)}
-      onDrop={onDrop}
-      onDragEnd={onDragEnd}
+      onDrop={onDrop} onDragEnd={onDragEnd}
     >
-      <div className="page-card-thumb">
+      <div className="pc-thumb">
         {page.type === 'image'
           ? <img src={page.dataUrl} alt="" />
-          : <canvas ref={canvasRef}></canvas>
-        }
+          : <canvas ref={canvasRef}></canvas>}
       </div>
-      <span className="page-card-num">{index + 1}</span>
-      <button className="page-card-del" onClick={() => onDelete(page.id)} title="Remover">✕</button>
-      <div className="page-card-info" title={page.file.name}>
-        {page.file.name} {page.type === 'pdf' ? `p.${page.pageNumber}` : ''}
+      <span className="pc-num">{index + 1}</span>
+      <button className="pc-del" onClick={() => onDelete(page.id)}>✕</button>
+      <div className="pc-name" title={page.file.name}>
+        {page.file.name}{page.type === 'pdf' ? ` · p.${page.pageNumber}` : ''}
       </div>
     </div>
   );
 }
 
-// ─── Main App ─────────────────────────────────────────────────────────────────
+/* ─── Main ──────────────────────────────────────────────────────────────── */
 function App() {
-  const [ready, setReady]           = useState(false);
-  const [pages, setPages]           = useState([]);
-  const [loading, setLoading]       = useState(false);
-  const [aiLoading, setAiLoading]   = useState(false);
-  const [error, setError]           = useState('');
-  const [warnMsg, setWarnMsg]       = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-  const [draggedItem, setDraggedItem] = useState(null);
-  const [claudeKey, setClaudeKey]   = useState('');
-  const [metadata, setMetadata] = useState({
-    dataPagamento: '', tipo: 'BOLETO E COMPROVANTE',
-    nomePrestador: '', valor: '',
-  });
+  const [ready,   setReady]   = useState(false);
+  const [pages,   setPages]   = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [dragged, setDragged] = useState(null);
+  const [error,   setError]   = useState('');
+  const [ok,      setOk]      = useState('');
+  const [detected,setDetected]= useState(false);
+  const [meta, setMeta] = useState({ data:'', tipo:'BOLETO E COMPROVANTE', prestador:'', valor:'' });
 
-  // Load PDF.js — only need the main lib; worker is set via workerSrc (no need to load as tag)
+  // Wait for CDN libs
   useEffect(() => {
-    if (window.pdfjsLib && window.PDFLib) {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      setReady(true);
-      return;
-    }
-    // pdf-lib already loaded via <script> tag in <head>
-    // pdf.js already loaded via <script> tag in <head>
-    // Just wait for them to be available
-    let attempts = 0;
-    const check = setInterval(() => {
-      attempts++;
+    let n = 0;
+    const t = setInterval(() => {
+      n++;
       if (window.pdfjsLib && window.PDFLib) {
-        clearInterval(check);
+        clearInterval(t);
         window.pdfjsLib.GlobalWorkerOptions.workerSrc =
           'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         setReady(true);
       }
-      if (attempts > 40) { // 4s timeout
-        clearInterval(check);
-        setError('Falha ao carregar bibliotecas. Verifique sua conexão e recarregue a página.');
-        setReady(true); // allow UI to show error
-      }
+      if (n > 60) { clearInterval(t); setError('Erro ao carregar bibliotecas. Recarregue a página.'); setReady(true); }
     }, 100);
-    return () => clearInterval(check);
+    return () => clearInterval(t);
   }, []);
 
-  // Derived filename preview
-  const filenamePreview = (() => {
-    const d = (metadata.dataPagamento || 'DATA').replace(/[^0-9.]/g,'');
-    const t = (metadata.tipo || 'TIPO').replace(/[^a-zA-Z0-9\s]/g,'_');
-    const n = (metadata.nomePrestador || 'PRESTADOR').replace(/[^a-zA-Z0-9\s]/g,'');
-    const v = (metadata.valor || 'VALOR').replace(/[^R$0-9.\s]/g,'').trim();
-    return `${d} ${t} ${n} ${v}.pdf`;
-  })();
+  // Computed filename
+  const d = meta.data.replace(/[^0-9.]/g,'') || 'SemData';
+  const t2 = meta.tipo.replace(/[^a-zA-Z0-9\s]/g,'_').trim() || 'Documento';
+  const pr = meta.prestador.replace(/[^a-zA-Z0-9\s]/g,'').trim() || 'SemPrestador';
+  const vl = meta.valor.replace(/[^\w$.\s]/g,'').trim() || 'SemValor';
+  const filename = `${d} ${t2} ${pr} ${vl}.pdf`;
+  const hasFilename = meta.data && meta.prestador && meta.valor;
 
-  // ── File handling ──
+  // Process files
   const handleFiles = async (files) => {
-    if (!window.pdfjsLib) { setError('Bibliotecas ainda carregando. Aguarde.'); return; }
-    setLoading(true); setError('');
+    if (!window.pdfjsLib) { setError('Aguarde o carregamento das bibliotecas.'); return; }
+    setLoading(true); setError(''); setOk('');
+    const parsed = smartParse(files);
+    if (parsed.data || parsed.prestador || parsed.valor) {
+      setDetected(true);
+      setMeta(prev => ({
+        ...prev,
+        data:      parsed.data      || prev.data,
+        prestador: parsed.prestador || prev.prestador,
+        valor:     parsed.valor     || prev.valor,
+      }));
+    }
     const results = [];
     for (const file of files) {
       try {
@@ -399,298 +280,191 @@ function App() {
           const dataUrl = await new Promise((res, rej) => {
             const r = new FileReader();
             r.onload = e => res(e.target.result);
-            r.onerror = () => rej(new Error(`Erro ao ler ${file.name}`));
+            r.onerror = () => rej();
             r.readAsDataURL(file);
           });
-          results.push({ id: `${file.name}-${Date.now()}-${Math.random()}`, type: 'image', file, dataUrl, textContent: null });
+          results.push({ id: `${file.name}-${Date.now()}-${Math.random()}`, type:'image', file, dataUrl });
         } else if (file.type === 'application/pdf') {
           const buf = await file.arrayBuffer();
           const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
-          let textContent = null;
-          if (file.name.toLowerCase().includes('comprovante')) {
-            const snippets = [];
-            for (let i = 1; i <= pdf.numPages; i++) {
-              const pg = await pdf.getPage(i);
-              const tc = await pg.getTextContent();
-              snippets.push(...tc.items.map(it => it.str));
-            }
-            textContent = snippets.join(' ');
-          }
-          for (let i = 1; i <= pdf.numPages; i++) {
-            results.push({ id: `${file.name}-${Date.now()}-${Math.random()}-p${i}`, type: 'pdf', file, pdfDoc: pdf, pageNumber: i, textContent });
-          }
+          for (let i = 1; i <= pdf.numPages; i++)
+            results.push({ id:`${file.name}-${Date.now()}-${Math.random()}-${i}`, type:'pdf', file, pdfDoc:pdf, pageNumber:i });
         } else {
           setError(`Tipo não suportado: ${file.name}`);
         }
-      } catch(e) { setError(`Erro ao processar ${file.name}: ${e.message}`); }
+      } catch(e) { setError(`Erro em ${file.name}: ${e.message}`); }
     }
     setPages(prev => [...prev, ...results]);
     setLoading(false);
   };
 
-  const handleFileInput = e => handleFiles(Array.from(e.target.files));
-
-  // ── Drag & Drop on preview ──
-  const handleDragStart = (e, index) => { setDraggedItem(pages[index]); };
-  const handleDragOver = (e, index) => {
+  // Drag-to-reorder
+  const onDragStart = (e, i) => setDragged(pages[i]);
+  const onDragOver  = (e, i) => {
     e.preventDefault();
-    if (!draggedItem || draggedItem.id === pages[index].id) return;
-    const arr = [...pages];
-    const from = arr.findIndex(p => p.id === draggedItem.id);
-    const [item] = arr.splice(from, 1);
-    arr.splice(index, 0, item);
-    setPages(arr);
+    if (!dragged || dragged.id === pages[i].id) return;
+    const arr = [...pages], from = arr.findIndex(p => p.id === dragged.id);
+    const [it] = arr.splice(from, 1); arr.splice(i, 0, it); setPages(arr);
   };
-  const handleDrop = e => { e.preventDefault(); setDraggedItem(null); };
-  const handleDragEnd = () => setDraggedItem(null);
-  const handleDelete = id => setPages(prev => prev.filter(p => p.id !== id));
+  const onDrop  = e => { e.preventDefault(); setDragged(null); };
+  const onDragEnd   = () => setDragged(null);
+  const onDelete    = id => setPages(prev => prev.filter(p => p.id !== id));
 
-  // ── AI Suggestion ──
-  const suggestWithAI = async () => {
-    if (!claudeKey.trim()) {
-      setError('Insira sua chave de API da Anthropic (Claude) para usar a sugestão IA.');
-      return;
-    }
-    if (pages.length === 0) { setError('Adicione arquivos primeiro.'); return; }
-    setAiLoading(true); setError(''); setWarnMsg(''); setSuccessMsg('');
-
-    const fileNames = [...new Set(pages.map(p => p.file.name))].join(', ');
-    const receiptText = pages
-      .filter(p => p.textContent)
-      .map(p => p.textContent)
-      .filter((t, i, s) => s.indexOf(t) === i)
-      .join('\n\n---\n\n');
-
-    let prompt = `Analise os nomes de arquivos${receiptText ? ' e o texto de comprovante' : ''} abaixo e extraia metadados.\n\nArquivos: ${fileNames}`;
-    if (receiptText) prompt += `\n\nTexto do comprovante:\n"""${receiptText.slice(0, 4000)}"""`;
-    prompt += `\n\nExtraia os seguintes campos e responda SOMENTE com JSON válido, sem markdown, sem explicação:
-{
-  "dataPagamento": "DD.MM.YY (use pontos, ex: 05.12.25)",
-  "valor": "R$ X.XXX.XX (prefixo R$, use PONTOS para decimais e milhares, ex: R$ 1.313.07)",
-  "nomePrestador": "nome de quem recebeu o valor",
-  "statusPagamento": "pago | agendado | a verificar"
-}
-Se um campo não for encontrado, retorne string vazia.`;
-
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': claudeKey.trim(),
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 512,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData?.error?.message || `Erro ${res.status}: ${res.statusText}`);
-      }
-
-      const data = await res.json();
-      const raw = data.content?.[0]?.text || '{}';
-      const json = JSON.parse(raw.replace(/```json|```/g, '').trim());
-
-      setMetadata(prev => ({
-        ...prev,
-        dataPagamento: json.dataPagamento || prev.dataPagamento,
-        valor: json.valor || prev.valor,
-        nomePrestador: json.nomePrestador || prev.nomePrestador,
-      }));
-
-      const st = (json.statusPagamento || '').toLowerCase();
-      if (st.includes('agendado') || st.includes('a verificar') || st.includes('pendente')) {
-        setWarnMsg(`⚠️ Status: "${json.statusPagamento}". Verifique se o pagamento foi concluído.`);
-      } else if (st.includes('pago')) {
-        setSuccessMsg(`✓ Pagamento identificado como "${json.statusPagamento}".`);
-      }
-    } catch(e) {
-      setError(`Erro na IA: ${e.message}`);
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  // ── Generate PDF ──
-  const generatePDF = async () => {
-    if (!window.PDFLib) { setError('Biblioteca PDF não carregada.'); return; }
-    if (pages.length === 0) { setError('Adicione arquivos primeiro.'); return; }
-    setLoading(true); setError('');
+  // Generate PDF
+  const generate = async () => {
+    if (!window.PDFLib || pages.length === 0) return;
+    setLoading(true); setError(''); setOk('');
     try {
       const { PDFDocument } = window.PDFLib;
       const doc = await PDFDocument.create();
-
       for (const pg of pages) {
         if (pg.type === 'image') {
           const bytes = await fetch(pg.dataUrl).then(r => r.arrayBuffer());
-          const img = pg.file.type === 'image/jpeg'
-            ? await doc.embedJpg(bytes)
-            : await doc.embedPng(bytes);
+          const img = pg.file.type === 'image/jpeg' ? await doc.embedJpg(bytes) : await doc.embedPng(bytes);
           const page = doc.addPage();
           const { width, height } = page.getSize();
           const dims = img.scaleToFit(width - 40, height - 40);
-          page.drawImage(img, {
-            x: (width - dims.width) / 2, y: (height - dims.height) / 2,
-            width: dims.width, height: dims.height,
-          });
+          page.drawImage(img, { x:(width-dims.width)/2, y:(height-dims.height)/2, ...dims });
         } else if (pg.type === 'pdf') {
           const bytes = await pg.file.arrayBuffer();
-          const src = await PDFDocument.load(bytes);
-          const [copied] = await doc.copyPages(src, [pg.pageNumber - 1]);
-          doc.addPage(copied);
+          const src   = await PDFDocument.load(bytes);
+          const [cp]  = await doc.copyPages(src, [pg.pageNumber - 1]);
+          doc.addPage(cp);
         }
       }
-
       const bytes = await doc.save();
-      const d = (metadata.dataPagamento || 'SemData').replace(/[^0-9.]/g,'');
-      const t = (metadata.tipo || 'Documento').replace(/[^a-zA-Z0-9]/g,'_');
-      const n = (metadata.nomePrestador || 'SemPrestador').replace(/[^a-zA-Z0-9\s]/g,'');
-      const v = (metadata.valor || 'SemValor').replace(/[^R$0-9.\s]/g,'').trim();
-      const filename = `${d} ${t} ${n} ${v}.pdf`;
-
-      const blob = new Blob([bytes], { type: 'application/pdf' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = filename;
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a);
+      const a = Object.assign(document.createElement('a'), {
+        href: URL.createObjectURL(new Blob([bytes], { type:'application/pdf' })),
+        download: filename
+      });
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(a.href);
-      setSuccessMsg(`PDF salvo como: ${filename}`);
-    } catch(e) {
-      setError(`Erro ao gerar PDF: ${e.message}`);
-    } finally { setLoading(false); }
+      setOk(`PDF salvo: "${filename}"`);
+    } catch(e) { setError(`Erro ao gerar PDF: ${e.message}`); }
+    finally     { setLoading(false); }
   };
 
-  // ─── SPLASH ───
-  if (!ready) {
-    return (
-      <div className="splash">
-        <div className="splash-title">Unir <span>PDFs</span></div>
-        <div className="splash-bar"><div className="splash-fill"></div></div>
-        <div className="splash-sub">Carregando bibliotecas…</div>
-      </div>
-    );
-  }
+  if (!ready) return (
+    <div className="splash">
+      <div className="splash-wordmark">PDF<em>fusion</em></div>
+      <div className="splash-track"><div className="splash-fill"></div></div>
+      <div className="splash-sub">Carregando bibliotecas…</div>
+    </div>
+  );
+
+  const fileCount = [...new Set(pages.map(p => p.file.name))].length;
 
   return (
     <div className="app">
-      <header>
-        <div className="header-top">
-          <h1 className="header-title">Unir <em>PDFs</em></h1>
-          <span className="header-badge">IA + PDF-Lib</span>
+      <header className="hdr">
+        <div>
+          <div className="wordmark">PDF<em>fusion</em></div>
+          <div className="hdr-sub">Una, organize e nomeie seus documentos em um único PDF</div>
         </div>
-        <p className="header-sub">Junte, organize e nomeie seus arquivos em um único PDF com auxílio de IA.</p>
+        <div className="badge"><span className="badge-dot"></span>100% local · sem upload · gratuito</div>
       </header>
 
       <div className="grid">
-        {/* ── COLUNA ESQUERDA ── */}
-        <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
+        {/* LEFT */}
+        <div style={{display:'flex',flexDirection:'column',gap:'16px'}}>
 
-          {/* Adicionar arquivos */}
           <div className="card">
-            <div className="card-title"><span className="step-num">1</span> Adicionar Arquivos</div>
-            <label htmlFor="file-in" style={{cursor:'pointer'}}>
-              <div className="file-drop">
-                <div className="file-drop-icon">📄</div>
-                <div className="file-drop-text">
-                  <strong>Clique para selecionar</strong> ou arraste aqui<br/>
-                  JPG, PNG ou PDF
+            <div className="ch"><div className="ch-ic">📎</div>
+              <div><div className="ch-title">Adicionar Arquivos</div><div className="ch-sub">Selecione PDFs, JPG ou PNG</div></div>
+            </div>
+            <div className="cb">
+              <label>
+                <div className="drop">
+                  <span className="drop-ic">⬆</span>
+                  <div className="drop-txt"><strong>Clique para selecionar</strong><br/>ou arraste os arquivos aqui</div>
+                  <input type="file" multiple accept="image/jpeg,image/png,application/pdf" onChange={e => handleFiles(Array.from(e.target.files))} />
                 </div>
-              </div>
-              <input id="file-in" type="file" multiple accept="image/jpeg,image/png,application/pdf" onChange={handleFileInput} />
-            </label>
-            {loading && <p style={{marginTop:10,fontSize:'.85rem',color:'#555',display:'flex',alignItems:'center',gap:8}}><span className="spin" style={{borderTopColor:'#555',borderColor:'#ccc'}}></span> Processando…</p>}
+              </label>
+              {loading && <div className="ldline"><span className="spin" style={{borderColor:'rgba(255,255,255,.1)',borderTopColor:'var(--accent)'}}></span>Processando arquivos…</div>}
+            </div>
           </div>
 
-          {/* Detalhes */}
           <div className="card">
-            <div className="card-title"><span className="step-num">2</span> Detalhes do Arquivo</div>
-
-            <div className="api-section">
-              <label>🤖 Chave API Claude (Anthropic)</label>
-              <input type="password" value={claudeKey} onChange={e => setClaudeKey(e.target.value)} placeholder="sk-ant-..." />
-              <p className="api-hint">Obtenha em <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">console.anthropic.com</a> — necessária apenas para usar a IA</p>
+            <div className="ch"><div className="ch-ic">✏️</div>
+              <div><div className="ch-title">Detalhes do Documento</div><div className="ch-sub">Define o nome do arquivo final</div></div>
             </div>
+            <div className="cb">
+              {detected && (
+                <div className="ds">
+                  <span>✓</span>
+                  <span>Dados detectados automaticamente nos nomes dos arquivos. Confira e ajuste se necessário.</span>
+                </div>
+              )}
 
-            <div className="form-group">
-              <label>Data de Pagamento</label>
-              <input type="text" value={metadata.dataPagamento} onChange={e => setMetadata(p=>({...p,dataPagamento:e.target.value}))} placeholder="Ex: 05.12.25" />
-            </div>
-            <div className="form-group">
-              <label>Tipo (Boleto, Comprovante…)</label>
-              <input type="text" value={metadata.tipo} onChange={e => setMetadata(p=>({...p,tipo:e.target.value}))} placeholder="Ex: BOLETO E COMPROVANTE" />
-            </div>
-            <div className="form-group">
-              <label>Nome do Prestador / Beneficiário</label>
-              <input type="text" value={metadata.nomePrestador} onChange={e => setMetadata(p=>({...p,nomePrestador:e.target.value}))} placeholder="Ex: Eletrobras" />
-            </div>
-            <div className="form-group">
-              <label>Valor</label>
-              <input type="text" value={metadata.valor} onChange={e => setMetadata(p=>({...p,valor:e.target.value}))} placeholder="Ex: R$ 123.45" />
-            </div>
+              <label className="fl">Data de Pagamento</label>
+              <input className={`fi${meta.data?' ok':''}`} type="text" value={meta.data} onChange={e=>setMeta(p=>({...p,data:e.target.value}))} placeholder="05.12.25" />
 
-            <button className="btn btn-ai" onClick={suggestWithAI} disabled={pages.length===0 || aiLoading}>
-              {aiLoading ? <><span className="spin"></span> Analisando…</> : '✨ Sugerir com IA'}
-            </button>
+              <label className="fl">Tipo</label>
+              <input className="fi" type="text" value={meta.tipo} onChange={e=>setMeta(p=>({...p,tipo:e.target.value}))} placeholder="BOLETO E COMPROVANTE" />
 
-            {/* Alerts */}
-            {error    && <div className="alert alert-error">⚠ {error}</div>}
-            {warnMsg  && <div className="alert alert-warn">{warnMsg}</div>}
-            {successMsg && <div className="alert alert-success">{successMsg}</div>}
+              <label className="fl">Prestador / Beneficiário</label>
+              <input className={`fi${meta.prestador?' ok':''}`} type="text" value={meta.prestador} onChange={e=>setMeta(p=>({...p,prestador:e.target.value}))} placeholder="Ex: Eletrobras" />
 
-            {/* Filename preview */}
-            <div className="filename-preview">
-              <strong>Nome do arquivo gerado</strong>
-              <div className="filename-text">{filenamePreview}</div>
+              <label className="fl">Valor</label>
+              <input className={`fi${meta.valor?' ok':''}`} type="text" value={meta.valor} onChange={e=>setMeta(p=>({...p,valor:e.target.value}))} placeholder="Ex: R$ 123.45" />
+
+              <div className="div"></div>
+              <div className="fnbox">
+                <div className="fnlabel">Nome do arquivo gerado</div>
+                {hasFilename
+                  ? <div className="fnval">{filename}</div>
+                  : <div className="fnempty">Preencha os campos para ver o nome</div>}
+              </div>
+
+              {error && <div className="al al-e"><span>⚠</span><span>{error}</span></div>}
+              {ok    && <div className="al al-s"><span>✓</span><span>{ok}</span></div>}
             </div>
           </div>
         </div>
 
-        {/* ── COLUNA DIREITA ── */}
-        <div className="card" style={{display:'flex', flexDirection:'column', gap:'16px'}}>
-          <div className="card-title">
-            <span className="step-num">3</span> Organizar Páginas
-            {pages.length > 0 && <span className="count-badge">{pages.length} página{pages.length!==1?'s':''}</span>}
+        {/* RIGHT */}
+        <div className="card" style={{position:'sticky',top:20}}>
+          <div className="ch"><div className="ch-ic">🗂</div>
+            <div><div className="ch-title">Organizar Páginas</div><div className="ch-sub">Arraste para reordenar · hover para excluir</div></div>
           </div>
-          <p style={{fontSize:'.82rem',color:'#888',marginTop:-8}}>Arraste para reordenar. Passe o mouse para excluir.</p>
-
-          <div className="preview-area">
-            {pages.length === 0
-              ? <div className="empty-state"><div className="empty-icon">🗂</div>Nenhuma página adicionada ainda.</div>
-              : pages.map((pg, i) => (
-                  <PageCard
-                    key={pg.id} page={pg} index={i}
-                    onDelete={handleDelete}
-                    isDragging={draggedItem?.id === pg.id}
-                    onDragStart={handleDragStart}
-                    onDragOver={handleDragOver}
-                    onDrop={handleDrop}
-                    onDragEnd={handleDragEnd}
-                  />
-                ))
-            }
-          </div>
-
-          <div style={{display:'flex', justifyContent:'flex-end', marginTop:'auto', paddingTop:8}}>
-            <button className="btn btn-save" onClick={generatePDF} disabled={pages.length===0 || loading || !ready}>
-              {loading
-                ? <><span className="spin"></span> Gerando…</>
-                : <><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> Salvar PDF Final</>
+          <div className="cb">
+            <div className="pv-wrap">
+              {pages.length === 0
+                ? <div className="empty">
+                    <div className="empty-ic">📄</div>
+                    <div className="empty-tx">Nenhuma página ainda.<br/>Selecione arquivos ao lado.</div>
+                  </div>
+                : pages.map((pg, i) => (
+                    <PageCard key={pg.id} page={pg} index={i}
+                      isDragging={dragged?.id === pg.id}
+                      onDelete={onDelete}
+                      onDragStart={onDragStart} onDragOver={onDragOver}
+                      onDrop={onDrop} onDragEnd={onDragEnd}
+                    />
+                  ))
               }
-            </button>
+            </div>
+
+            <div className="bot">
+              <span className="pg-count">
+                <strong>{pages.length}</strong> página{pages.length!==1?'s':''}
+                {fileCount > 0 && <span style={{color:'var(--muted)'}}> · {fileCount} arquivo{fileCount!==1?'s':''}</span>}
+              </span>
+              <div style={{display:'flex',gap:8}}>
+                {pages.length > 0 &&
+                  <button className="btn-clr" onClick={()=>{setPages([]);setDetected(false);setOk('');setError('')}}>Limpar</button>}
+                <button className="btn-gen" onClick={generate} disabled={pages.length===0||loading}>
+                  {loading
+                    ? <><span className="spin"></span>Gerando…</>
+                    : <><svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3"/></svg>Salvar PDF</>}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <footer>
-        <p>© {new Date().getFullYear()} Desenvolvido por Carlos Henrique · React + PDF-Lib + Claude AI (Anthropic)</p>
-      </footer>
+      <footer>PDFusion · Desenvolvido por Carlos Henrique · Processamento 100% local, sem envio de dados</footer>
     </div>
   );
 }
