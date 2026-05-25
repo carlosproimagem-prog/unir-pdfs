@@ -312,18 +312,84 @@ function MergeTool() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
-  const [prestador, setPrestador] = useState("");
+  // Estados organizados na nova ordem solicitada
   const [dataPagamento, setDataPagamento] = useState("");
+  const [prestador, setPrestador] = useState("");
   const [valor, setValor] = useState("");
+
+  // Função mágica para ler o PDF e tentar preencher os campos sozinha
+  async function extrairDadosAutomatico(pdf) {
+    try {
+      if (pdf.numPages === 0) return;
+      
+      // Pega o texto da primeira página do primeiro documento
+      const firstPage = await pdf.getPage(1);
+      const textContent = await firstPage.getTextContent();
+      const textoCompleto = textContent.items.map(item => item.str).join(" ");
+
+      // 1. Tenta reconhecer Data (padrão DD/MM/AAAA)
+      const regexData = /(\d{2})\/(\d{2})\/(\d{4})/;
+      const dataEncontrada = textoCompleto.match(regexData);
+      if (dataEncontrada) {
+        const [_, dia, mes, ano] = dataEncontrada;
+        // Converte para o formato aceito pelo <input type="date"> (AAAA-MM-DD)
+        setDataPagamento(`${ano}-${mes}-${dia}`);
+      }
+
+      // 2. Tenta reconhecer Valor (padrão R$ XX,XX)
+      const regexValor = /R\$\s*([\d\.]+,\d{2})/;
+      const valorEncontrado = textoCompleto.match(regexValor);
+      if (valorEncontrado) {
+        setValor(`R$ ${valorEncontrado[1].trim()}`);
+      }
+
+      // 3. Tenta reconhecer o Prestador/Médico por lista de nomes comuns ou palavras-chave
+      const nomesMedicos = [
+        "Dr. Andre Aboim", "Dr. André Aboim",
+        "Dr. Carlos Vahle",
+        "Dr. Andre Garcia", "Dr. André Garcia",
+        "Dr. Caio Molina"
+      ];
+      
+      let nomeIdentificado = "";
+      for (const nome of nomesMedicos) {
+        if (textoCompleto.toLowerCase().includes(nome.toLowerCase())) {
+          nomeIdentificado = nome;
+          break;
+        }
+      }
+
+      // Se não achou um nome conhecido, tenta buscar por palavras-chave de formulários
+      if (!nomeIdentificado) {
+        const regexGenerica = /(?:Prestador|Médico|Nome|Beneficiário):\s*([A-Za-zÀ-ÿ\s\.\-]+?)(?:\s{2,}|\n|$|[\d,])/i;
+        const correspondencia = textoCompleto.match(regexGenerica);
+        if (correspondencia && correspondencia[1].trim().length > 3) {
+          nomeIdentificado = correspondencia[1].trim();
+        }
+      }
+
+      if (nomeIdentificado) {
+        setPrestador(nomeIdentificado);
+      }
+
+    } catch (err) {
+      console.warn("Não foi possível fazer a leitura automática de dados deste PDF.", err);
+    }
+  }
 
   async function handleFiles(e) {
     const files = Array.from(e.target.files || e.dataTransfer.files);
     const list = [];
+    let primeiroPdfCarregado = null;
 
     for (const file of files) {
       if (file.type !== 'application/pdf') continue;
       const buffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+
+      if (!primeiroPdfCarregado) {
+        primeiroPdfCarregado = pdf;
+      }
 
       for (let i = 0; i < pdf.numPages; i++) {
         list.push({
@@ -333,7 +399,13 @@ function MergeTool() {
         });
       }
     }
+    
     setPages(prev => [...prev, ...list]);
+
+    // Se carregou um PDF válido, dispara a leitura automática inteligente
+    if (primeiroPdfCarregado) {
+      await extrairDadosAutomatico(primeiroPdfCarregado);
+    }
   }
 
   const handleValorChange = (e) => {
@@ -368,8 +440,11 @@ function MergeTool() {
       let nomeFinal = "UNIDOC-ProImagem.pdf";
       
       if (prestador || dataPagamento || valor) {
+        // Formata de AAAA-MM-DD para DD-MM-AAAA
         const dataFormatada = dataPagamento ? dataPagamento.split('-').reverse().join('-') : "";
-        const partesNome = [prestador, dataFormatada, valor].filter(Boolean).join(" - ");
+        
+        // ORDEM DO SALVAMENTO: Data -> Prestador -> Valor -> Frase Fixa
+        const partesNome = [dataFormatada, prestador, valor].filter(Boolean).join(" - ");
         nomeFinal = `${partesNome} - boleto e comprovante.pdf`;
       }
 
@@ -426,24 +501,25 @@ function MergeTool() {
 
           <hr style={{ margin: '30px 0', border: 'none', borderTop: '1px solid var(--border)' }} />
           
-          <h3 style={{ marginBottom: '15px', color: 'var(--primary)' }}>Dados do Documento</h3>
+          <h3 style={{ marginBottom: '15px', color: 'var(--primary)' }}>Dados do Documento (Preenchidos Automaticamente)</h3>
           
+          {/* Ordem dos Inputs visualmente alterada conforme pedido */}
           <div className="form-grid">
-            <div className="field">
-              <label>Prestador:</label>
-              <input 
-                type="text" 
-                placeholder="Ex: Dr. Andre Aboim" 
-                value={prestador} 
-                onChange={(e) => setPrestador(e.target.value)} 
-              />
-            </div>
             <div className="field">
               <label>Data de Pagamento:</label>
               <input 
                 type="date" 
                 value={dataPagamento} 
                 onChange={(e) => setDataPagamento(e.target.value)} 
+              />
+            </div>
+            <div className="field">
+              <label>Prestador:</label>
+              <input 
+                type="text" 
+                placeholder="Nome do Médico ou Empresa" 
+                value={prestador} 
+                onChange={(e) => setPrestador(e.target.value)} 
               />
             </div>
             <div className="field">
@@ -479,7 +555,7 @@ function MergeTool() {
         </>
       )}
     </div>
-  )
+  );
 }
 
 function SplitTool() {
