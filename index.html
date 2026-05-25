@@ -312,6 +312,11 @@ function MergeTool(){
   const [loading,setLoading] = useState(false);
   const [message,setMessage] = useState(null);
 
+  // Novos campos para padronização do documento
+  const [prestador, setPrestador] = useState("");
+  const [dataPagamento, setDataPagamento] = useState("");
+  const [valor, setValor] = useState("");
+  
   async function handleFiles(e){
     const files = Array.from(e.target.files || e.dataTransfer.files);
     const list = [];
@@ -325,7 +330,19 @@ function MergeTool(){
     }
     setPages(prev=>[...prev,...list]);
   }
-
+// Função para aplicar a máscara de Moeda (R$) automaticamente
+  const handleValorChange = (e) => {
+    let v = e.target.value.replace(/\D/g, ""); // Remove tudo o que não é número
+    if (!v) {
+      setValor("");
+      return;
+    }
+    v = (v / 100).toFixed(2) + ""; // Coloca os centavos
+    v = v.replace(".", ","); // Troca ponto por vírgula
+    v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1."); // Coloca os pontos de milhar
+    setValor(`R$ ${v}`);
+  };
+  
   async function generatePDF(){
     try{
       setLoading(true);
@@ -340,6 +357,19 @@ function MergeTool(){
       const blob = new Blob([bytes],{ type:'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
+      // Montando o nome do arquivo dinamicamente
+      let nomeFinal = "UNIDOC-ProImagem.pdf"; // Nome padrão de segurança
+      
+      if (prestador || dataPagamento || valor) {
+        // Formata a data de YYYY-MM-DD para DD-MM-YYYY
+        const dataFormatada = dataPagamento ? dataPagamento.split('-').reverse().join('-') : "";
+        
+        // Junta as partes preenchidas filtrando espaços vazios
+        const partesNome = [prestador, dataFormatada, valor].filter(Boolean).join(" - ");
+        
+        // Adiciona a frase fixa no final
+        nomeFinal = `${partesNome} - boleto e comprovante.pdf`;
+      }
       a.href = url;
       a.download = 'UNIDOC-ProImagem.pdf';
       a.click();
