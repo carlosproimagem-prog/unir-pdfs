@@ -246,6 +246,7 @@ footer{background:linear-gradient(100deg,var(--bl-d),var(--bl));padding:22px 28p
 <div id="root"></div>
 <script id="logo-data" type="application/json">__LOGO__</script>
 <script type="text/babel">
+window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const { useState, useRef, useEffect } = React;
 const LOGO = JSON.parse(document.getElementById('logo-data').textContent);
 
@@ -328,6 +329,52 @@ function SplitThumb({pdfDoc,pageNum}){
 // MERGE TOOL
 // ═══════════════════════════════════════════════════════════════════════════════
 function MergeTool(){
+
+  // Componentes temporários para evitar o erro #130
+function SplitTool() {
+  return (
+    <div style={{padding: '40px', textAlign: 'center', background: '#fff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)'}}>
+      <h2>Dividir PDF</h2>
+      <p style={{color: '#666', marginTop: '10px'}}>Esta ferramenta estará disponível em breve!</p>
+    </div>
+  );
+}
+
+function ConvertTool() {
+  return (
+    <div style={{padding: '40px', textAlign: 'center', background: '#fff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)'}}>
+      <h2>Converter PDF</h2>
+      <p style={{color: '#666', marginTop: '10px'}}>Esta ferramenta estará disponível em breve!</p>
+    </div>
+  );
+}
+
+function CompressTool() {
+  return (
+    <div style={{padding: '40px', textAlign: 'center', background: '#fff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)'}}>
+      <h2>Comprimir PDF</h2>
+      <p style={{color: '#666', marginTop: '10px'}}>Esta ferramenta estará disponível em breve!</p>
+    </div>
+  );
+}
+
+function RotateTool() {
+  return (
+    <div style={{padding: '40px', textAlign: 'center', background: '#fff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)'}}>
+      <h2>Rotacionar PDF</h2>
+      <p style={{color: '#666', marginTop: '10px'}}>Esta ferramenta estará disponível em breve!</p>
+    </div>
+  );
+}
+
+function ProtectTool() {
+  return (
+    <div style={{padding: '40px', textAlign: 'center', background: '#fff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)'}}>
+      <h2>Proteger PDF</h2>
+      <p style={{color: '#666', marginTop: '10px'}}>Esta ferramenta estará disponível em breve!</p>
+    </div>
+  );
+}
   const[pages,setPages]=useState([]);
   const[loading,setLoading]=useState(false);
   const[dragged,setDragged]=useState(null);
