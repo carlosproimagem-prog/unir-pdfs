@@ -1,109 +1,698 @@
-# --- Conteúdo da página HTML ---
-html_content = """<!DOCTYPE html>
+
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>UNIDOC — Pro Imagem</title>
+
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
 <style>
-:root{--p:#005c53;--p-rgb:0,92,83;--s:#9fc131;--a:#dbf227;--b:#d6d58e;--bg:#f4f7f6;--txt:#1c2826;--mt:#57606f;--border:#e4e7eb}
-*{box-sizing:border-box;margin:0;padding:0;font-family:'Montserrat',sans-serif}
-body{background:var(--bg);color:var(--txt);line-height:1.5;overflow-x:hidden}
-.app-wrap{display:flex;flex-direction:column;min-height:100vh}
-header{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,0.02)}
-.hd-inner{max-width:1200px;margin:0 auto;padding:0 20px;height:70px;display:flex;align-items:center;justify-content:space-between}
-.logo-wrap{display:flex;align-items:center;gap:12px;cursor:pointer}
-.logo-title{font-size:1.4rem;font-weight:700;letter-spacing:-0.5px;color:var(--p)}
-.logo-title span{color:var(--s)}
-.nav-back{background:none;border:none;color:var(--mt);font-weight:500;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;gap:6px;transition:color 0.2s;padding:8px 12px;border-radius:6px}
-.nav-back:hover{color:var(--p);background:rgba(0,92,83,0.05)}
-.hero{background:linear-gradient(134deg, var(--p) 0%, #00403a 100%);color:#fff;padding:40px 20px;text-align:center;position:relative}
-.hero-inner{max-width:800px;margin:0 auto}
-.hero-title{font-size:2rem;font-weight:700;margin-bottom:8px}
-.hero-title span{color:var(--a)}
-.hero-sub{font-size:1rem;opacity:0.9;font-weight:400}
-.accent-bar{height:4px;background:linear-gradient(90deg, var(--s), var(--a))}
-.main{flex:1;max-width:1200px;width:100%;margin:0 auto;padding:30px 20px}
-.db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;margin-top:10px}
-.db-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:24px;cursor:pointer;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;display:flex;flex-direction:column;gap:12px}
-.db-card:hover{transform:translateY(-4px);box-shadow:0 12px 20px rgba(0,0,0,0.05);border-color:var(--s)}
-.db-icon{font-size:2rem;width:50px;height:50px;background:rgba(159,193,49,0.1);color:var(--p);border-radius:10px;display:flex;align-items:center;justify-content:center}
-.db-title{font-size:1.15rem;font-weight:600;color:var(--p)}
-.db-desc{font-size:0.85rem;color:var(--mt);line-height:1.4}
-.tool-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:15px}
-.tool-info h2{font-size:1.5rem;color:var(--p);font-weight:700}
-.tool-info p{font-size:0.9rem;color:var(--mt);margin-top:2px}
-.drop-zone{background:#fff;border:2px dashed #cbd5e1;border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all 0.2s}
-.drop-zone:hover,.drop-zone.dragover{border-color:var(--p);background:rgba(0,92,83,0.01)}
-.drop-icon{font-size:2.5rem;color:var(--mt);margin-bottom:10px}
-.drop-text{font-size:1rem;font-weight:500;color:var(--txt)}
-.drop-sub{font-size:0.8rem;color:var(--mt);margin-top:4px}
-.pages-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px;margin-top:25px}
-.pc{background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px;position:relative;cursor:grab;user-select:none;transition:transform 0.15s,box-shadow 0.15s;display:flex;flex-direction:column;align-items:center;gap:8px}
-.pc:active{cursor:grabbing}
-.pc.drag{opacity:0.4;transform:scale(0.95);border-color:var(--p)}
-.pc-thumb-wrap{width:120px;height:160px;background:#f8fafc;border:1px solid #f1f5f9;border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative}
-.pc-thumb{max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 2px 4px rgba(0,0,0,0.05)}
-.pc-num{position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.6);color:#fff;font-size:0.7rem;font-weight:600;padding:2px 6px;border-radius:4px;backdrop-filter:blur(2px)}
-.pc-del{position:absolute;top:4px;right:4px;width:22px;height:22px;background:#fff;border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;cursor:pointer;color:#ef4444;box-shadow:0 2px 4px rgba(0,0,0,0.05);transition:all 0.15s}
-.pc-del:hover{background:#ef4444;color:#fff;border-color:#ef4444;transform:scale(1.1)}
-.pc-info{width:100%;text-align:center;font-size:0.75rem;font-weight:500;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px}
-.actions-panel{margin-top:30px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:20px}
-.meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px}
-.f-group{display:flex;flex-direction:column;gap:6px}
-.f-group label{font-size:0.8rem;font-weight:600;color:var(--p);text-transform:uppercase;letter-spacing:0.5px}
-.f-group input,.f-group select{height:40px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-size:0.85rem;color:var(--txt);transition:border-color 0.2s}
-.f-group input:focus,.f-group select:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(0,92,83,0.05)}
-.output-box{background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:15px;display:flex;flex-direction:column;gap:8px}
-.out-lbl{font-size:0.8rem;font-weight:600;color:var(--mt)}
-.out-val{font-size:0.95rem;font-weight:600;color:var(--p);word-break:break-all;display:flex;align-items:center;gap:6px}
-.btn{height:46px;background:var(--p);color:#fff;border:none;border-radius:8px;font-size:0.95rem;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 24px}
-.btn:hover{background:#004a42;box-shadow:0 4px 12px rgba(0,92,83,0.15)}
-.btn:disabled{background:#cbd5e1;color:#94a3b8;cursor:not-allowed;box-shadow:none}
-footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;margin-top:60px}
-.ft-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
-.ft-txt{font-size:0.75rem;color:var(--mt);line-height:1.5;width:100%}
-.ft-txt strong{color:var(--p)}
-.spinner{width:20px;height:20px;border:2.5px solid rgba(255,255,255,0.3);border-radius:50%;border-top-color:#fff;animation:spin 0.8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.alert{padding:12px 16px;border-radius:6px;font-size:0.85rem;font-weight:500;margin-bottom:15px;display:flex;align-items:center;justify-content:flex-start;gap:10px}
-.alert-err{background:#fef2f2;color:#991b1b;border:1px solid #fee2e2}
-.alert-ok{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
-.detected-badge{display:inline-flex;align-items:center;gap:4px;background:#e0f2fe;color:#0369a1;font-size:0.7rem;font-weight:600;padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
+:root{
+  --primary:#005c53;
+  --secondary:#9fc131;
+  --accent:#dbf227;
+  --bg:#f4f7f6;
+  --text:#1c2826;
+  --muted:#57606f;
+  --border:#e4e7eb;
+}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:'Montserrat',sans-serif;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+}
+
+header{
+  background:#fff;
+  border-bottom:1px solid var(--border);
+  position:sticky;
+  top:0;
+  z-index:1000;
+}
+
+.container{
+  max-width:1200px;
+  margin:0 auto;
+  padding:20px;
+}
+
+.header-content{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.logo{
+  font-size:1.6rem;
+  font-weight:700;
+  color:var(--primary);
+}
+
+.logo span{
+  color:var(--secondary);
+}
+
+.hero{
+  background:linear-gradient(135deg,var(--primary),#003d37);
+  color:#fff;
+  padding:50px 20px;
+  text-align:center;
+}
+
+.hero h1{
+  font-size:2.2rem;
+  margin-bottom:10px;
+}
+
+.hero p{
+  opacity:.9;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:20px;
+  margin-top:30px;
+}
+
+.card{
+  background:#fff;
+  border-radius:14px;
+  border:1px solid var(--border);
+  padding:24px;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 10px 20px rgba(0,0,0,.05);
+}
+
+.card h3{
+  margin-top:12px;
+  color:var(--primary);
+}
+
+.tool-box{
+  background:#fff;
+  border-radius:14px;
+  border:1px solid var(--border);
+  padding:24px;
+  margin-top:30px;
+}
+
+.dropzone{
+  border:2px dashed #cbd5e1;
+  border-radius:12px;
+  padding:40px;
+  text-align:center;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.dropzone:hover{
+  border-color:var(--primary);
+  background:rgba(0,92,83,.03);
+}
+
+.pages{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:16px;
+  margin-top:25px;
+}
+
+.page-card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px;
+}
+
+.page-card canvas{
+  width:100%;
+  border-radius:6px;
+}
+
+.actions{
+  margin-top:30px;
+  display:grid;
+  gap:16px;
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.field input,
+.field select{
+  height:44px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:0 12px;
+}
+
+.btn{
+  height:48px;
+  border:none;
+  border-radius:10px;
+  background:var(--primary);
+  color:#fff;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.btn:disabled{
+  opacity:.7;
+  cursor:not-allowed;
+}
+
+.alert{
+  margin-top:15px;
+  padding:12px;
+  border-radius:8px;
+  font-size:.9rem;
+}
+
+.error{
+  background:#fef2f2;
+  color:#991b1b;
+}
+
+.success{
+  background:#ecfdf5;
+  color:#166534;
+}
+
+footer{
+  margin-top:50px;
+  background:#fff;
+  border-top:1px solid var(--border);
+  padding:30px 20px;
+  text-align:center;
+  color:var(--muted);
+}
 </style>
 </head>
+
 <body>
 <div id="root"></div>
+
 <script type="text/babel">
-  function App() {
-    return (
-      <div className="app-wrap">
-        <header>
-          <div className="hd-inner">
-            <div className="logo-title">Pro Imagem <span>UNIDOC</span></div>
-          </div>
-        </header>
-        <div className="main">
-          <h1>Bem-vindo ao UNIDOC</h1>
-          <p>Sistema operante e funcional.</p>
-        </div>
-      </div>
-    );
+
+const { useState, useEffect, useRef } = React;
+
+function parseDate(text){
+  const match = text.match(/\d{2}[\/\-.]\d{2}[\/\-.]\d{4}/);
+  return match ? match[0].replace(/[-.]/g,'/') : '';
+}
+
+function parseValue(text){
+  const match = text.match(/(?:R\$\s?)?(\d{1,3}(?:\.\d{3})*,\d{2})/);
+  return match ? match[1] : '';
+}
+
+function parsePrestador(text){
+  const providers = [
+    'ENERGISA',
+    'DESO',
+    'CLARO',
+    'VIVO',
+    'TIM',
+    'ITAU',
+    'BRADESCO',
+    'CAIXA',
+    'SANTANDER'
+  ];
+
+  return providers.find(p => text.toUpperCase().includes(p)) || '';
+}
+
+async function extractText(file){
+  try{
+    const buffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data:buffer}).promise;
+
+    let text = '';
+
+    for(let i = 1; i <= Math.min(pdf.numPages,2); i++){
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+
+      text += content.items.map(i => i.str).join(' ');
+    }
+
+    return text;
+
+  }catch(error){
+    console.error(error);
+    return '';
   }
-  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+}
+
+function PagePreview({page}){
+
+  const canvasRef = useRef(null);
+
+  useEffect(()=>{
+
+    async function renderPage(){
+
+      try{
+
+        const buffer = await page.file.arrayBuffer();
+
+        const pdf = await pdfjsLib.getDocument({data:buffer}).promise;
+
+        const pdfPage = await pdf.getPage(page.pageIndex + 1);
+
+        const viewport = pdfPage.getViewport({scale:0.35});
+
+        const canvas = canvasRef.current;
+
+        const context = canvas.getContext('2d');
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        await pdfPage.render({
+          canvasContext:context,
+          viewport
+        }).promise;
+
+      }catch(error){
+        console.error(error);
+      }
+    }
+
+    renderPage();
+
+  },[]);
+
+  return (
+    <div className="page-card">
+      <canvas ref={canvasRef}></canvas>
+      <small>{page.file.name}</small>
+    </div>
+  )
+}
+
+function MergeTool(){
+
+  const [pages,setPages] = useState([]);
+  const [loading,setLoading] = useState(false);
+  const [error,setError] = useState('');
+  const [success,setSuccess] = useState('');
+
+  const [meta,setMeta] = useState({
+    data:'',
+    tipo:'BOLETO',
+    prestador:'',
+    valor:''
+  });
+
+  async function handleFiles(event){
+
+    const files = Array.from(
+      event.target.files || event.dataTransfer.files
+    );
+
+    setError('');
+    setSuccess('');
+
+    const newPages = [];
+
+    try{
+
+      for(const file of files){
+
+        if(file.type !== 'application/pdf'){
+          setError('Envie apenas arquivos PDF.');
+          continue;
+        }
+
+        const buffer = await file.arrayBuffer();
+
+        const pdf = await pdfjsLib.getDocument({
+          data:buffer
+        }).promise;
+
+        for(let i = 0; i < pdf.numPages; i++){
+
+          newPages.push({
+            id: crypto.randomUUID(),
+            file,
+            pageIndex:i
+          });
+        }
+
+        const text = await extractText(file);
+
+        setMeta(prev => ({
+          ...prev,
+          data: prev.data || parseDate(text),
+          valor: prev.valor || parseValue(text),
+          prestador: prev.prestador || parsePrestador(text)
+        }));
+      }
+
+      setPages(prev => [...prev,...newPages]);
+
+    }catch(error){
+      console.error(error);
+      setError('Erro ao processar o PDF.');
+    }
+  }
+
+  function buildName(){
+
+    const parts = [];
+
+    if(meta.data) parts.push(meta.data);
+    if(meta.tipo) parts.push(meta.tipo);
+    if(meta.prestador) parts.push(meta.prestador);
+    if(meta.valor) parts.push(`R$ ${meta.valor}`);
+
+    return parts.join(' - ') + '.pdf';
+  }
+
+  async function generatePDF(){
+
+    try{
+
+      setLoading(true);
+
+      const pdfDoc = await PDFLib.PDFDocument.create();
+
+      for(const page of pages){
+
+        const buffer = await page.file.arrayBuffer();
+
+        const sourcePdf = await PDFLib.PDFDocument.load(buffer);
+
+        const [copiedPage] = await pdfDoc.copyPages(
+          sourcePdf,
+          [page.pageIndex]
+        );
+
+        pdfDoc.addPage(copiedPage);
+      }
+
+      const bytes = await pdfDoc.save();
+
+      const blob = new Blob([bytes],{
+        type:'application/pdf'
+      });
+
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+
+      a.href = url;
+      a.download = buildName();
+
+      a.click();
+
+      URL.revokeObjectURL(url);
+
+      setSuccess('PDF gerado com sucesso!');
+
+    }catch(error){
+
+      console.error(error);
+
+      setError('Erro ao gerar PDF.');
+
+    }finally{
+
+      setLoading(false);
+    }
+  }
+
+  return(
+    <div className="tool-box">
+
+      <h2>Juntar PDF</h2>
+
+      <div
+        className="dropzone"
+        onDragOver={(e)=>e.preventDefault()}
+        onDrop={(e)=>{
+          e.preventDefault();
+          handleFiles(e);
+        }}
+        onClick={()=>document.getElementById('pdf-input').click()}
+      >
+
+        <h3>📂 Arraste seus PDFs aqui</h3>
+
+        <p>ou clique para selecionar arquivos</p>
+
+        <input
+          id="pdf-input"
+          type="file"
+          accept=".pdf"
+          multiple
+          hidden
+          onChange={handleFiles}
+        />
+      </div>
+
+      {error && <div className="alert error">{error}</div>}
+      {success && <div className="alert success">{success}</div>}
+
+      {pages.length > 0 && (
+        <>
+
+          <div className="pages">
+            {pages.map(page=>(
+              <PagePreview key={page.id} page={page}/>
+            ))}
+          </div>
+
+          <div className="actions">
+
+            <div className="field">
+              <label>Data</label>
+              <input
+                value={meta.data}
+                onChange={(e)=>setMeta({
+                  ...meta,
+                  data:e.target.value
+                })}
+              />
+            </div>
+
+            <div className="field">
+              <label>Tipo</label>
+
+              <select
+                value={meta.tipo}
+                onChange={(e)=>setMeta({
+                  ...meta,
+                  tipo:e.target.value
+                })}
+              >
+                <option>BOLETO</option>
+                <option>NOTA FISCAL</option>
+                <option>COMPROVANTE</option>
+                <option>RELATORIO</option>
+              </select>
+            </div>
+
+            <div className="field">
+              <label>Prestador</label>
+
+              <input
+                value={meta.prestador}
+                onChange={(e)=>setMeta({
+                  ...meta,
+                  prestador:e.target.value
+                })}
+              />
+            </div>
+
+            <div className="field">
+              <label>Valor</label>
+
+              <input
+                value={meta.valor}
+                onChange={(e)=>setMeta({
+                  ...meta,
+                  valor:e.target.value
+                })}
+              />
+            </div>
+
+            <div className="field">
+              <label>Nome Final</label>
+              <input value={buildName()} readOnly/>
+            </div>
+
+            <button
+              className="btn"
+              onClick={generatePDF}
+              disabled={loading}
+            >
+              {loading ? 'Gerando PDF...' : 'Gerar PDF'}
+            </button>
+
+          </div>
+
+        </>
+      )}
+
+    </div>
+  )
+}
+
+function Dashboard({setTool}){
+
+  const tools = [
+    {
+      id:'merge',
+      title:'Juntar PDF',
+      icon:'📄',
+      desc:'Combine vários PDFs'
+    },
+    {
+      id:'split',
+      title:'Dividir PDF',
+      icon:'✂️',
+      desc:'Separe páginas'
+    },
+    {
+      id:'compress',
+      title:'Comprimir PDF',
+      icon:'📉',
+      desc:'Reduza tamanho'
+    }
+  ];
+
+  return(
+    <div className="grid">
+
+      {tools.map(tool=>(
+        <div
+          key={tool.id}
+          className="card"
+          onClick={()=>setTool(tool.id)}
+        >
+
+          <div style={{fontSize:'2rem'}}>{tool.icon}</div>
+
+          <h3>{tool.title}</h3>
+
+          <p>{tool.desc}</p>
+
+        </div>
+      ))}
+
+    </div>
+  )
+}
+
+function App(){
+
+  const [tool,setTool] = useState(null);
+
+  useEffect(()=>{
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  },[]);
+
+  return(
+    <>
+
+      <header>
+
+        <div className="container header-content">
+
+          <div className="logo">
+            Pro Imagem <span>UNIDOC</span>
+          </div>
+
+          {tool && (
+            <button
+              className="btn"
+              style={{width:'180px'}}
+              onClick={()=>setTool(null)}
+            >
+              Voltar
+            </button>
+          )}
+
+        </div>
+
+      </header>
+
+      <section className="hero">
+
+        <h1>
+          Plataforma de PDFs
+        </h1>
+
+        <p>
+          Processamento local, rápido e seguro.
+        </p>
+
+      </section>
+
+      <main className="container">
+
+        {!tool && <Dashboard setTool={setTool}/>}
+
+        {tool === 'merge' && <MergeTool/>}
+
+        {tool === 'split' && (
+          <div className="tool-box">
+            <h2>Dividir PDF</h2>
+            <p>Ferramenta em desenvolvimento.</p>
+          </div>
+        )}
+
+        {tool === 'compress' && (
+          <div className="tool-box">
+            <h2>Comprimir PDF</h2>
+            <p>Ferramenta em desenvolvimento.</p>
+          </div>
+        )}
+
+      </main>
+
+      <footer>
+        © 2026 UNIDOC — Pro Imagem Exames e Consultas
+      </footer>
+
+    </>
+  )
+}
+
+ReactDOM.createRoot(
+  document.getElementById('root')
+).render(<App/>);
+
 </script>
+
 </body>
-</html>"""
-
-# --- Comando para salvar o arquivo (FORA da variável) ---
-with open('/mnt/user-data/uploads/unidoc_final.html', 'w', encoding='utf-8') as f:
-    f.write(html_content)
-
-print("HTML gerado com sucesso!")
+</html>
