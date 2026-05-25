@@ -246,9 +246,15 @@ footer{background:linear-gradient(100deg,var(--bl-d),var(--bl));padding:22px 28p
 <div id="root"></div>
 <script id="logo-data" type="application/json">__LOGO__</script>
 <script type="text/babel">
-window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const { useState, useRef, useEffect } = React;
 const LOGO = JSON.parse(document.getElementById('logo-data').textContent);
+try {
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+} catch (e) {
+  window.addEventListener('load', () => {
+    if (window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  });
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function parseDate(text) {
