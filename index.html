@@ -99,9 +99,8 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
 <script type="text/json" id="logo-data">"__LOGO_URI__"</script>
 
 <script type="text/babel">
-window.useState = React.useState;
-window.useRef = React.useRef;
-window.useEffect = React.useEffect;
+// Garantimos as declarações desestruturadas associadas explicitamente ao escopo global
+const { useState, useRef, useEffect } = React;
 const LOGO = JSON.parse(document.getElementById('logo-data').textContent);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -172,3 +171,326 @@ async function extractPdfText(file) {
     return '';
   }
 }
+
+// ─── Componente PageCard ──────────────────────────────────────────────────────
+function PageCard({pg, idx, onMove, onRemove}) {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    let renderTask = null;
+    async function draw() {
+      try {
+        const fileBuffer = await pg.file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: fileBuffer }).promise;
+        const page = await pdf.getPage(pg.pageIndex + 1);
+        const vp = page.getViewport({ scale: 0.25 });
+        const canvas = canvasRef.current;
+        if(!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.height = vp.height;
+        canvas.width = vp.width;
+        renderTask = page.render({ canvasContext: ctx, viewport: vp });
+        await renderTask.promise;
+      } catch(e) {
+        console.error(e);
+      }
+    }
+    draw();
+    return () => {
+      if(renderTask && renderTask.cancel) renderTask.cancel();
+    };
+  }, [pg]);
+
+  return (
+    <div className="pc" draggable onDragStart={e=>{e.dataTransfer.setData('text/plain',idx.toString())}} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const from=parseInt(e.dataTransfer.getData('text/plain'),10);if(from!==idx)onMove(from,idx)}}>
+      <div className="pc-thumb-wrap">
+        <canvas ref={canvasRef} className="pc-thumb"/>
+        <div className="pc-num">{idx+1}</div>
+        <div className="pc-del" onClick={()=>onRemove(idx)}>×</div>
+      </div>
+      <div className="pc-info" title={pg.file.name}>{pg.file.name}</div>
+    </div>
+  );
+}
+
+// ─── Componente MergeTool ─────────────────────────────────────────────────────
+function MergeTool() {
+  const [pages, setPages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [ok, setOk] = useState('');
+  const [detected, setDetected] = useState(false);
+  const [meta, setMeta] = useState({data:'', tipo:'BOLETO E COMPROVANTE', prestador:'', valor:''});
+
+  const onDropZone = async (e) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer?.files || e.target.files || []);
+    if(!files.length) return;
+    setError(''); setOk('');
+    let textSample = '';
+    for(let f of files) {
+      if(f.type !== 'application/pdf') {
+        setError('Apenas arquivos PDF são aceitos no momento.');
+        return;
+      }
+      try {
+        const fileBuffer = await f.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: fileBuffer }).promise;
+        const newPages = [];
+        for(let i=0; i<pdf.numPages; i++) {
+          newPages.push({ id: Math.random().toString(36).substr(2,9), file: f, pageIndex: i });
+        }
+        setPages(prev => [...prev, ...newPages]);
+        if(!textSample) {
+          textSample = await extractPdfText(f);
+        }
+      } catch(err) {
+        setError('Erro ao ler arquivo PDF.');
+      }
+    }
+    if(textSample) {
+      const d = parseDate(textSample);
+      const v = parseValue(textSample);
+      const p = parsePrestador(textSample);
+      if(d || v || p) {
+        setMeta(prev => ({ ...prev, data: d||prev.data, valor: v||prev.valor, prestador: p||prev.prestador }));
+        setDetected(true);
+      }
+    }
+  };
+
+  const movePage = (from, to) => {
+    setPages(prev => {
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
+  };
+
+  const removePage = (idx) => {
+    setPages(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const buildName = () => {
+    const d = meta.data.replace(/\//g, '.');
+    const p = meta.prestador ? ` - ${meta.prestador}` : '';
+    const v = meta.valor ? ` - R$ ${meta.valor}` : '';
+    return `${d} - ${meta.tipo}${p}${v}.pdf`;
+  };
+
+  const generate = async () => {
+    if(!pages.length) return;
+    setLoading(true); setError(''); setOk('');
+    try {
+      const outPdf = await PDFLib.PDFDocument.create();
+      const fileDocs = new Map();
+      for(let p of pages) {
+        if(!fileDocs.has(p.file)) {
+          const ab = await p.file.arrayBuffer();
+          const d = await PDFLib.PDFDocument.load(ab);
+          fileDocs.set(p.file, d);
+        }
+        const srcDoc = fileDocs.get(p.file);
+        const [copied] = await outPdf.copyPages(srcDoc, [p.pageIndex]);
+        outPdf.addPage(copied);
+      }
+      const bytes = await outPdf.save();
+      const b = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(b);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = buildName();
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      setOk('PDF combinado e baixado com sucesso!');
+    } catch(err) {
+      setError('Erro ao gerar o PDF final.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="tool-box">
+      <div className="tool-header">
+        <div className="tool-info">
+          <h2>Juntar PDF</h2>
+          <p>Combine múltiplos arquivos em um único documento, reordene as páginas e gere o nome ideal automaticamente.</p>
+        </div>
+      </div>
+      {error && <div className="alert alert-err">{error}</div>}
+      {ok && <div className="alert alert-ok">{ok}</div>}
+      <div className="drop-zone" onDragOver={e=>e.preventDefault()} onDrop={onDropZone} onClick={()=>document.getElementById('f-merge').click()}>
+        <div className="drop-icon">📥</div>
+        <div className="drop-text">Arrastar e soltar os arquivos PDF aqui</div>
+        <div className="drop-sub">ou clique para procurar no seu computador</div>
+        <input type="file" id="f-merge" multiple accept=".pdf" style={{display:'none'}} onChange={onDropZone}/>
+      </div>
+      {pages.length > 0 && (
+        <>
+          <div className="pages-grid">
+            {pages.map((p, i) => (
+              <PageCard key={p.id} pg={p} idx={i} onMove={movePage} onRemove={removePage}/>
+            ))}
+          </div>
+          <div className="actions-panel">
+            <h3 style={{fontSize:'1.1rem',color:'var(--p)',fontWeight:600}}>Configuração do Nome do Arquivo {detected && <span className="detected-badge">✨ Dados Detectados</span>}</h3>
+            <div className="meta-grid">
+              <div className="f-group">
+                <label>Data (DD.MM.AAAA)</label>
+                <input type="text" value={meta.data} onChange={e=>setMeta({...meta,data:e.target.value})} placeholder="Ex: 10/05/2025"/>
+              </div>
+              <div className="f-group">
+                <label>Tipo de Documento</label>
+                <select value={meta.tipo} onChange={e=>setMeta({...meta,tipo:e.target.value})}>
+                  <option value="BOLETO E COMPROVANTE">BOLETO E COMPROVANTE</option>
+                  <option value="COMPROVANTE DE PAGAMENTO">COMPROVANTE DE PAGAMENTO</option>
+                  <option value="BOLETO">BOLETO</option>
+                  <option value="NOTA FISCAL">NOTA FISCAL</option>
+                  <option value="RELATORIO">RELATORIO</option>
+                  <option value="DECLARACAO">DECLARACAO</option>
+                </select>
+              </div>
+              <div className="f-group">
+                <label>Prestador / Empresa</label>
+                <input type="text" value={meta.prestador} onChange={e=>setMeta({...meta,prestador:e.target.value.toUpperCase()})} placeholder="Ex: ENERGISA"/>
+              </div>
+              <div className="f-group">
+                <label>Valor (R$)</label>
+                <input type="text" value={meta.valor} onChange={e=>setMeta({...meta,valor:e.target.value})} placeholder="Ex: 1.250,00"/>
+              </div>
+            </div>
+            <div className="output-box">
+              <div className="out-lbl">Visualização do nome final do arquivo:</div>
+              <div className="out-val">📄 {buildName()}</div>
+            </div>
+            <button className="btn" onClick={generate} disabled={loading}>
+              {loading ? <div className="spinner"/> : 'Gerar e Baixar PDF Combinado'}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Componentes Restantes (Abas do Dashboard) ──────────────────────────────
+function SplitTool(){
+  return (
+    <div style={{padding:'40px',textAlign:'center',background:'#fff',borderRadius:'12px',border:'1px solid var(--border)'}}>
+      <h2>Dividir PDF</h2>
+      <p style={{color:'var(--mt)',marginTop:'10px'}}>Esta ferramenta estará disponível em breve!</p>
+    </div>
+  );
+}
+function ConvertTool(){
+  return (
+    <div style={{padding:'40px',textAlign:'center',background:'#fff',borderRadius:'12px',border:'1px solid var(--border)'}}>
+      <h2>Converter PDF</h2>
+      <p style={{color:'var(--mt)',marginTop:'10px'}}>Esta ferramenta estará disponível em breve!</p>
+    </div>
+  );
+}
+function CompressTool(){
+  return (
+    <div style={{padding:'40px',textAlign:'center',background:'#fff',borderRadius:'12px',border:'1px solid var(--border)'}}>
+      <h2>Comprimir PDF</h2>
+      <p style={{color:'var(--mt)',marginTop:'10px'}}>Esta ferramenta estará disponível em breve!</p>
+    </div>
+  );
+}
+function RotateTool(){
+  return (
+    <div style={{padding:'40px',textAlign:'center',background:'#fff',borderRadius:'12px',border:'1px solid var(--border)'}}>
+      <h2>Rotacionar PDF</h2>
+      <p style={{color:'var(--mt)',marginTop:'10px'}}>Esta ferramenta estará disponível em breve!</p>
+    </div>
+  );
+}
+function ProtectTool(){
+  return (
+    <div style={{padding:'40px',textAlign:'center',background:'#fff',borderRadius:'12px',border:'1px solid var(--border)'}}>
+      <h2>Proteger PDF</h2>
+      <p style={{color:'var(--mt)',marginTop:'10px'}}>Esta ferramenta estará disponível em breve!</p>
+    </div>
+  );
+}
+
+// ─── Dashboard ───────────────────────────────────────────────────────────────
+function Dashboard({onSelect}) {
+  const tools = [
+    { id: 'merge', title: 'Juntar PDF', desc: 'Combine múltiplos arquivos em um único PDF.', icon: '📄' },
+    { id: 'split', title: 'Dividir PDF', desc: 'Extraia páginas ou divida em vários arquivos.', icon: '✂️' },
+    { id: 'convert', title: 'Converter', desc: 'Transforme imagens em PDF ou vice-versa.', icon: '🔄' },
+    { id: 'compress', title: 'Comprimir', desc: 'Reduza o tamanho do arquivo sem perder qualidade.', icon: '🗜️' },
+    { id: 'rotate', title: 'Rotacionar', desc: 'Gire páginas e salve a nova orientação.', icon: '↩️' },
+    { id: 'protect', title: 'Proteger', desc: 'Adicione senha e criptografia ao seu documento.', icon: '🔒' },
+  ];
+  return (
+    <div className="db-grid">
+      {tools.map(t => (
+        <div key={t.id} className="db-card" onClick={()=>onSelect(t.id)}>
+          <div className="db-icon">{t.icon}</div>
+          <div className="db-title">{t.title}</div>
+          <div className="db-desc">{t.desc}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── App Principal ────────────────────────────────────────────────────────────
+function App() {
+  const [tool, setTool] = useState(null);
+
+  // Inicializa o Worker de forma integrada e segura
+  useEffect(() => {
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  }, []);
+
+  return (
+    <div className="app-wrap">
+      <header>
+        <div className="hd-inner">
+          <div className="logo-wrap" onClick={()=>setTool(null)}>
+            <img className="logo-img" src={LOGO} alt="Pro Imagem"/>
+            <div className="logo-title">UNI<span>DOC</span></div>
+          </div>
+          {tool && <button className="nav-back" onClick={()=>setTool(null)}>← Voltar ao Início</button>}
+        </div>
+      </header>
+
+      <div className="hero">
+        <div className="hero-inner">
+          {tool === 'merge' ? (
+            <><div className="hero-title">Juntar <span>PDF</span></div><div className="hero-sub">Processamento 100% local no seu navegador. Nenhum arquivo é enviado para servidores externos.</div></>
+          ):(
+            <><div className="hero-title">Bem-vindo ao <span>UNIDOC</span></div><div className="hero-sub">Site de ferramentas para gestão de documentos PDF. Seguro, rápido e sem envio de dados.</div></>
+          )}
+        </div>
+      </div>
+      <div className="accent-bar"></div>
+
+      <div className="main">
+        {!tool&&<Dashboard onSelect={setTool}/>}
+        {tool==='merge'&&<MergeTool/>}
+        {tool==='split'&&<SplitTool/>}
+        {tool==='convert'&&<ConvertTool/>}
+        {tool==='compress'&&<CompressTool/>}
+        {tool==='rotate'&&<RotateTool/>}
+        {tool==='protect'&&<ProtectTool/>}
+      </div>
+
+      <footer>
+        <div className="ft-inner">
+          <div className="ft-logo-wrap"><img className="ft-logo" src={LOGO} alt="Pro Imagem"/></div>
+          <div className="ft-txt">© {new Date().getFullYear()} <strong>UNIDOC</strong> · Desenvolvido por <strong>Carlos Henrique</strong><br/>Pro Imagem Exames e Consultas · Processamento 100% local no navegador</div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render
