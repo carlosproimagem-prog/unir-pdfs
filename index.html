@@ -99,7 +99,9 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
 <script type="text/json" id="logo-data">"__LOGO_URI__"</script>
 
 <script type="text/babel">
-const { useState, useRef, useEffect } = React;
+window.useState = React.useState;
+window.useRef = React.useRef;
+window.useEffect = React.useEffect;
 const LOGO = JSON.parse(document.getElementById('logo-data').textContent);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
