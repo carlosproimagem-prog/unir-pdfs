@@ -1,5 +1,6 @@
-cat << 'EOF' > /mnt/user-data/uploads/unidoc_final.html
-<!DOCTYPE html>
+# Substitua TODO o conteúdo do seu arquivo .py por este código e rode com o Python:
+
+html_content = """<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
@@ -18,7 +19,7 @@ cat << 'EOF' > /mnt/user-data/uploads/unidoc_final.html
 body{background:var(--bg);color:var(--txt);line-height:1.5;overflow-x:hidden}
 .app-wrap{display:flex;flex-direction:column;min-height:100vh}
 header{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,0.02)}
-.hd-inner{max-width:1200px;margin:0 auto;padding:0 20px;height:70px;display:flex;align-items:center;justify-content:between}
+.hd-inner{max-width:1200px;margin:0 auto;padding:0 20px;height:70px;display:flex;align-items:center;justify-content:space-between}
 .logo-wrap{display:flex;align-items:center;gap:12px;cursor:pointer}
 .logo-title{font-size:1.4rem;font-weight:700;letter-spacing:-0.5px;color:var(--p)}
 .logo-title span{color:var(--s)}
@@ -37,7 +38,7 @@ header{background:#fff;border-bottom:1px solid var(--border);position:sticky;top
 .db-icon{font-size:2rem;width:50px;height:50px;background:rgba(159,193,49,0.1);color:var(--p);border-radius:10px;display:flex;align-items:center;justify-content:center}
 .db-title{font-size:1.15rem;font-weight:600;color:var(--p)}
 .db-desc{font-size:0.85rem;color:var(--mt);line-height:1.4}
-.tool-header{display:flex;align-items:center;justify-content:between;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:15px}
+.tool-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:15px}
 .tool-info h2{font-size:1.5rem;color:var(--p);font-weight:700}
 .tool-info p{font-size:0.9rem;color:var(--mt);margin-top:2px}
 .drop-zone{background:#fff;border:2px dashed #cbd5e1;border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all 0.2s}
@@ -54,7 +55,7 @@ header{background:#fff;border-bottom:1px solid var(--border);position:sticky;top
 .pc-num{position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.6);color:#fff;font-size:0.7rem;font-weight:600;padding:2px 6px;border-radius:4px;backdrop-filter:blur(2px)}
 .pc-del{position:absolute;top:4px;right:4px;width:22px;height:22px;background:#fff;border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;cursor:pointer;color:#ef4444;box-shadow:0 2px 4px rgba(0,0,0,0.05);transition:all 0.15s}
 .pc-del:hover{background:#ef4444;color:#fff;border-color:#ef4444;transform:scale(1.1)}
-.pc-info{width:100%;text-align:center;font-size:0.75rem;font-weight:500;color:var(--txt);white-space:nowrap;overflow:hidden;text-transform:ellipsis;padding:0 2px}
+.pc-info{width:100%;text-align:center;font-size:0.75rem;font-weight:500;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px}
 .actions-panel{margin-top:30px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:20px}
 .meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px}
 .f-group{display:flex;flex-direction:column;gap:6px}
@@ -68,7 +69,7 @@ header{background:#fff;border-bottom:1px solid var(--border);position:sticky;top
 .btn:hover{background:#004a42;box-shadow:0 4px 12px rgba(0,92,83,0.15)}
 .btn:disabled{background:#cbd5e1;color:#94a3b8;cursor:not-allowed;box-shadow:none}
 footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;margin-top:60px}
-.ft-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:between;gap:20px;flex-wrap:wrap}
+.ft-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .ft-txt{font-size:0.75rem;color:var(--mt);line-height:1.5;width:100%}
 .ft-txt strong{color:var(--p)}
 .spinner{width:20px;height:20px;border:2.5px solid rgba(255,255,255,0.3);border-radius:50%;border-top-color:#fff;animation:spin 0.8s linear infinite}
@@ -81,13 +82,11 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
 </head>
 <body>
 <div id="root"></div>
-
 <script type="text/babel">
   const useState = React.useState;
   const useRef = React.useRef;
   const useEffect = React.useEffect;
 
-  // --- Funções Auxiliares de Extração ---
   function parseDate(text) {
     const r = /(?:3[01]|[12][0-9]|0[1-9])[\/\.\-](?:1[0-2]|0[1-9])[\/\.\-](?:20)?2[56]/g;
     const m = text.match(r);
@@ -101,10 +100,7 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
     while ((m = r.exec(text)) !== null) {
       let s = m[1].replace(/\s/g,'');
       let v = parseFloat(s.replace(/\./g,'').replace(',','.'));
-      if(v > max && v < 1000000) {
-        max = v;
-        best = s;
-      }
+      if(v > max && v < 1000000) { max = v; best = s; }
     }
     return best;
   }
@@ -139,16 +135,12 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
       for(let i=1; i<=Math.min(pdf.numPages, 3); i++) {
         const page = await pdf.getPage(i);
         const tc = await page.getTextContent();
-        fullText += tc.items.map(item => item.str).join(' ') + '\n';
+        fullText += tc.items.map(item => item.str).join(' ') + '\\n';
       }
       return fullText;
-    } catch(e) {
-      console.error(e);
-      return '';
-    }
+    } catch(e) { return ''; }
   }
 
-  // --- Componente: Miniatura de Página ---
   function PageCard({pg, idx, onMove, onRemove}) {
     const canvasRef = useRef(null);
     useEffect(() => {
@@ -162,18 +154,13 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
           const canvas = canvasRef.current;
           if(!canvas) return;
           const ctx = canvas.getContext('2d');
-          canvas.height = vp.height;
-          canvas.width = vp.width;
+          canvas.height = vp.height; canvas.width = vp.width;
           renderTask = page.render({ canvasContext: ctx, viewport: vp });
           await renderTask.promise;
-        } catch(e) {
-          console.error(e);
-        }
+        } catch(e) {}
       }
       draw();
-      return () => {
-        if(renderTask && renderTask.cancel) renderTask.cancel();
-      };
+      return () => { if(renderTask && renderTask.cancel) renderTask.cancel(); };
     }, [pg]);
 
     return (
@@ -188,7 +175,6 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
     );
   }
 
-  // --- Componente: Ferramenta de Fusão ---
   function MergeTool() {
     const [pages, setPages] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -203,32 +189,19 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
       if(!files.length) return;
       setError(''); setOk('');
       let textSample = '';
-      
       for(let f of files) {
-        if(f.type !== 'application/pdf') {
-          setError('Apenas arquivos PDF são aceitos no momento.');
-          return;
-        }
+        if(f.type !== 'application/pdf') { setError('Apenas arquivos PDF são aceitos.'); return; }
         try {
           const fileBuffer = await f.arrayBuffer();
           const pdf = await window.pdfjsLib.getDocument({ data: fileBuffer }).promise;
           const newPages = [];
-          for(let i=0; i<pdf.numPages; i++) {
-            newPages.push({ id: Math.random().toString(36).substr(2,9), file: f, pageIndex: i });
-          }
+          for(let i=0; i<pdf.numPages; i++) newPages.push({ id: Math.random().toString(36).substr(2,9), file: f, pageIndex: i });
           setPages(prev => [...prev, ...newPages]);
-          if(!textSample) {
-            textSample = await extractPdfText(f);
-          }
-        } catch(err) {
-          setError('Erro ao ler arquivo PDF.');
-        }
+          if(!textSample) textSample = await extractPdfText(f);
+        } catch(err) { setError('Erro ao ler PDF.'); }
       }
-
       if(textSample) {
-        const d = parseDate(textSample);
-        const v = parseValue(textSample);
-        const p = parsePrestador(textSample);
+        const d = parseDate(textSample); const v = parseValue(textSample); const p = parsePrestador(textSample);
         if(d || v || p) {
           setMeta(prev => ({ ...prev, data: d||prev.data, valor: v||prev.valor, prestador: p||prev.prestador }));
           setDetected(true);
@@ -237,20 +210,11 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
     };
 
     const movePage = (from, to) => {
-      setPages(prev => {
-        const next = [...prev];
-        const [item] = next.splice(from, 1);
-        next.splice(to, 0, item);
-        return next;
-      });
+      setPages(prev => { const next = [...prev]; const [item] = next.splice(from, 1); next.splice(to, 0, item); return next; });
     };
-
-    const removePage = (idx) => {
-      setPages(prev => prev.filter((_, i) => i !== idx));
-    };
-
+    const removePage = (idx) => { setPages(prev => prev.filter((_, i) => i !== idx)); };
     const buildName = () => {
-      const d = meta.data.replace(/\//g, '.');
+      const d = meta.data.replace(/\\//g, '.');
       const p = meta.prestador ? ` - ${meta.prestador}` : '';
       const v = meta.valor ? ` - R$ ${meta.valor}` : '';
       return `${d ? d + ' - ' : ''}${meta.tipo}${p}${v}.pdf`;
@@ -262,32 +226,21 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
       try {
         const outPdf = await PDFLib.PDFDocument.create();
         const fileDocs = new Map();
-        
         for(let p of pages) {
           if(!fileDocs.has(p.file)) {
             const ab = await p.file.arrayBuffer();
-            const d = await PDFLib.PDFDocument.load(ab);
-            fileDocs.set(p.file, d);
+            fileDocs.set(p.file, await PDFLib.PDFDocument.load(ab));
           }
-          const srcDoc = fileDocs.get(p.file);
-          const [copied] = await outPdf.copyPages(srcDoc, [p.pageIndex]);
+          const [copied] = await outPdf.copyPages(fileDocs.get(p.file), [p.pageIndex]);
           outPdf.addPage(copied);
         }
-
         const bytes = await outPdf.save();
-        const b = new Blob([bytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(b);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = buildName();
-        a.click();
+        const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+        const a = document.createElement('a'); a.href = url; a.download = buildName(); a.click();
         setTimeout(() => URL.revokeObjectURL(url), 2000);
         setOk('PDF combinado e baixado com sucesso!');
-      } catch(err) {
-        setError('Erro ao gerar o PDF final.');
-      } finally {
-        setLoading(false);
-      }
+      } catch(err) { setError('Erro ao gerar o PDF final.'); } 
+      finally { setLoading(false); }
     };
 
     return (
@@ -300,60 +253,31 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
         </div>
         {error && <div className="alert alert-err">{error}</div>}
         {ok && <div className="alert alert-ok">{ok}</div>}
-        
         <div className="drop-zone" onDragOver={e=>e.preventDefault()} onDrop={onDropZone} onClick={()=>document.getElementById('f-merge').click()}>
           <div className="drop-icon">📂</div>
           <div className="drop-text">Arrastar e soltar os arquivos PDF aqui</div>
           <div className="drop-sub">ou clique para procurar no seu computador</div>
           <input type="file" id="f-merge" multiple accept=".pdf" style={{display:'none'}} onChange={onDropZone}/>
         </div>
-
         {pages.length > 0 && (
           <>
-            <div className="pages-grid">
-              {pages.map((p, i) => (
-                <PageCard key={p.id} pg={p} idx={i} onMove={movePage} onRemove={removePage}/>
-              ))}
-            </div>
-            
+            <div className="pages-grid">{pages.map((p, i) => <PageCard key={p.id} pg={p} idx={i} onMove={movePage} onRemove={removePage}/>)}</div>
             <div className="actions-panel">
-              <h3 style={{fontSize:'1.1rem',color:'var(--p)',fontWeight:600}}>
-                Configuração do Nome do Arquivo {detected && <span className="detected-badge">✓ Dados Detectados</span>}
-              </h3>
+              <h3 style={{fontSize:'1.1rem',color:'var(--p)',fontWeight:600}}>Configuração do Nome {detected && <span className="detected-badge">✓ Dados Detectados</span>}</h3>
               <div className="meta-grid">
-                <div className="f-group">
-                  <label>Data (DD.MM.AAAA)</label>
-                  <input type="text" value={meta.data} onChange={e=>setMeta({...meta,data:e.target.value})} placeholder="Ex: 10/05/2026"/>
-                </div>
+                <div className="f-group"><label>Data (DD.MM.AAAA)</label><input type="text" value={meta.data} onChange={e=>setMeta({...meta,data:e.target.value})} placeholder="Ex: 10/05/2026"/></div>
                 <div className="f-group">
                   <label>Tipo de Documento</label>
                   <select value={meta.tipo} onChange={e=>setMeta({...meta,tipo:e.target.value})}>
-                    <option value="BOLETO E COMPROVANTE">BOLETO E COMPROVANTE</option>
-                    <option value="COMPROVANTE DE PAGAMENTO">COMPROVANTE DE PAGAMENTO</option>
-                    <option value="BOLETO">BOLETO</option>
-                    <option value="NOTA FISCAL">NOTA FISCAL</option>
-                    <option value="RELATORIO">RELATORIO</option>
-                    <option value="DECLARACAO">DECLARACAO</option>
+                    <option value="BOLETO E COMPROVANTE">BOLETO E COMPROVANTE</option><option value="COMPROVANTE DE PAGAMENTO">COMPROVANTE DE PAGAMENTO</option>
+                    <option value="BOLETO">BOLETO</option><option value="NOTA FISCAL">NOTA FISCAL</option><option value="RELATORIO">RELATORIO</option><option value="DECLARACAO">DECLARACAO</option>
                   </select>
                 </div>
-                <div className="f-group">
-                  <label>Prestador / Empresa</label>
-                  <input type="text" value={meta.prestador} onChange={e=>setMeta({...meta,prestador:e.target.value.toUpperCase()})} placeholder="Ex: ENERGISA"/>
-                </div>
-                <div className="f-group">
-                  <label>Valor (R$)</label>
-                  <input type="text" value={meta.valor} onChange={e=>setMeta({...meta,valor:e.target.value})} placeholder="Ex: 1.250,00"/>
-                </div>
+                <div className="f-group"><label>Prestador / Empresa</label><input type="text" value={meta.prestador} onChange={e=>setMeta({...meta,prestador:e.target.value.toUpperCase()})} placeholder="Ex: ENERGISA"/></div>
+                <div className="f-group"><label>Valor (R$)</label><input type="text" value={meta.valor} onChange={e=>setMeta({...meta,valor:e.target.value})} placeholder="Ex: 1.250,00"/></div>
               </div>
-              
-              <div className="output-box">
-                <div className="out-lbl">Visualização do nome final do arquivo:</div>
-                <div className="out-val">📄 {buildName()}</div>
-              </div>
-              
-              <button className="btn" onClick={generate} disabled={loading}>
-                {loading ? <div className="spinner"/> : 'Gerar e Baixar PDF Combinado'}
-              </button>
+              <div className="output-box"><div className="out-lbl">Visualização do nome final do arquivo:</div><div className="out-val">📄 {buildName()}</div></div>
+              <button className="btn" onClick={generate} disabled={loading}>{loading ? <div className="spinner"/> : 'Gerar e Baixar PDF Combinado'}</button>
             </div>
           </>
         )}
@@ -361,48 +285,39 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
     );
   }
 
-  // --- Componentes Secundários (Abas) ---
   function PlaceholderTool({ name }) {
     return (
       <div style={{padding:'40px',textAlign:'center',background:'#fff',borderRadius:'12px',border:'1px solid var(--border)'}}>
-        <h2>{name}</h2>
-        <p style={{color:'var(--mt)',marginTop:'10px'}}>Esta ferramenta estará disponível em breve!</p>
+        <h2>{name}</h2><p style={{color:'var(--mt)',marginTop:'10px'}}>Esta ferramenta estará disponível em breve!</p>
       </div>
     );
   }
 
   function Dashboard({onSelect}) {
     const tools = [
-      { id: 'merge', title: 'Juntar PDF', desc: 'Combine múltiplos arquivos em um único PDF.', icon: '📂' },
-      { id: 'split', title: 'Dividir PDF', desc: 'Extraia páginas ou divida em vários arquivos.', icon: '✂️' },
-      { id: 'convert', title: 'Converter', desc: 'Transforme imagens em PDF ou vice-versa.', icon: '🔄' },
-      { id: 'compress', title: 'Comprimir', desc: 'Reduza o tamanho do arquivo sem perder qualidade.', icon: '📉' },
-      { id: 'rotate', title: 'Rotacionar', desc: 'Gire páginas e salve a nova orientação.', icon: '🔄' },
-      { id: 'protect', title: 'Proteger', desc: 'Adicione senha e criptografia ao seu documento.', icon: '🔒' },
+      { id: 'merge', title: 'Juntar PDF', desc: 'Combine múltiplos arquivos.', icon: '📂' },
+      { id: 'split', title: 'Dividir PDF', desc: 'Extraia páginas de arquivos.', icon: '✂️' },
+      { id: 'convert', title: 'Converter', desc: 'Imagens em PDF ou vice-versa.', icon: '🔄' },
+      { id: 'compress', title: 'Comprimir', desc: 'Reduza o tamanho do arquivo.', icon: '📉' },
+      { id: 'rotate', title: 'Rotacionar', desc: 'Gire páginas e salve a orientação.', icon: '🔄' },
+      { id: 'protect', title: 'Proteger', desc: 'Adicione senha ao seu documento.', icon: '🔒' },
     ];
     return (
       <div className="db-grid">
         {tools.map(t => (
           <div key={t.id} className="db-card" onClick={()=>onSelect(t.id)}>
-            <div className="db-icon">{t.icon}</div>
-            <div className="db-title">{t.title}</div>
-            <div className="db-desc">{t.desc}</div>
+            <div className="db-icon">{t.icon}</div><div className="db-title">{t.title}</div><div className="db-desc">{t.desc}</div>
           </div>
         ))}
       </div>
     );
   }
 
-  // --- App Principal ---
   function App() {
     const [tool, setTool] = useState(null);
-
     useEffect(() => {
-      if (window.pdfjsLib) {
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      }
+      if (window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }, []);
-
     return (
       <div className="app-wrap">
         <header>
@@ -413,7 +328,6 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
             {tool && <button className="nav-back" onClick={()=>setTool(null)}>← Voltar ao Início</button>}
           </div>
         </header>
-
         <div className="hero">
           <div className="hero-inner">
             {tool === 'merge' ? (
@@ -424,7 +338,6 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
           </div>
         </div>
         <div className="accent-bar"></div>
-
         <div className="main">
           {!tool && <Dashboard onSelect={setTool}/>}
           {tool === 'merge' && <MergeTool/>}
@@ -434,21 +347,21 @@ footer{background:#fff;border-top:1px solid var(--border);padding:24px 20px;marg
           {tool === 'rotate' && <PlaceholderTool name="Rotacionar PDF"/>}
           {tool === 'protect' && <PlaceholderTool name="Proteger PDF"/>}
         </div>
-
         <footer>
           <div className="ft-inner">
-            <div className="ft-txt">
-              © 2026 <strong>UNIDOC</strong> · Desenvolvido para a <strong>Pro Imagem Exames e Consultas</strong><br/>
-              Processamento 100% local e seguro diretamente no navegador.
-            </div>
+            <div className="ft-txt">© 2026 <strong>UNIDOC</strong> · Desenvolvido para a <strong>Pro Imagem Exames e Consultas</strong><br/>Processamento 100% local e seguro diretamente no navegador.</div>
           </div>
         </footer>
       </div>
     );
   }
-
   ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
-EOF
+"""
+
+with open('/mnt/user-data/uploads/unidoc_final.html', 'w', encoding='utf-8') as f:
+    f.write(html_content)
+
+print("HTML gerado com sucesso!")
