@@ -338,17 +338,26 @@ function MergeTool() {
         setDataPagamento(`${ano}-${mes}-${dia}`); // Formato para o <input type="date">
       }
 
-      // 2. RECONHECIMENTO DE VALOR (Procura R$ XX,XX ou R$ XX.XX)
-      const regexValor = /R\$\s*([0-9\.\,]+)/i;
-      const valorEncontrado = textoCompleto.match(regexValor);
-      if (valorEncontrado) {
-        let valorCru = valorEncontrado[1].trim();
-        // Se terminar com vírgula e dois dígitos (padrão BR), ajustamos para o formato visual
-        if (/\,\d{2}$/.test(valorCru)) {
-          setValor(`R$ ${valorCru}`);
-        } else {
-          setValor(`R$ ${valorCru}`);
+      // 2. RECONHECIMENTO ULTRA PRECISO DE VALOR FINANCEIRO
+      let valorIdentificado = "";
+      
+      // Termos comuns que antecedem o valor real em notas fiscais, boletos e comprovantes
+      const termosValor = [
+        /(?:Valor do Documento|Valor Pago|Valor Lido|Valor Nominal|Total do Documento|Valor da Nota|Total da Nota|Valor Líquido|Valor Liquido|Valor Total|Total)\s*(?:R\$\s*)?([\d\.]+,\d{2})/i,
+        /(?:Valor Principal|Valor da Operação|Importância|Quantia)\s*(?:R\$\s*)?([\d\.]+,\d{2})/i,
+        /R\$\s*([\d\.]+,\d{2})/i // Busca genérica caso não ache os termos acima
+      ];
+
+      for (const regexV of termosValor) {
+        const matchV = textoComQuebras.match(regexV) || textoCompleto.match(regexV);
+        if (matchV && matchV[1]) {
+          valorIdentificado = `R$ ${matchV[1].trim()}`;
+          break;
         }
+      }
+
+      if (valorIdentificado) {
+        setValor(valorIdentificado);
       }
 
       // 3. RECONHECIMENTO DE PRESTADOR / EMPRESA / MÉDICO
@@ -373,16 +382,13 @@ function MergeTool() {
         for (const regex of termosChave) {
           const match = textoComQuebras.match(regex);
           if (match && match[1].trim().length > 3) {
-            // Limpa caracteres residuais comuns do final da linha
             nomeIdentificado = match[1].split(/[;:,]/)[0].trim();
             break;
           }
         }
       }
 
-      // Se identificou um prestador (médico ou empresa), atualiza o campo
       if (nomeIdentificado) {
-        // Remove espaços duplos e limpa pontuações soltas
         nomeIdentificado = nomeIdentificado.replace(/\s+/g, ' ').trim();
         setPrestador(nomeIdentificado);
       }
@@ -418,17 +424,14 @@ function MergeTool() {
     setPages(prev => [...prev, ...list]);
 
     if (primeiroPdfCarregado) {
-      // Pequeno delay para garantir estabilidade na leitura do buffer
       setTimeout(async () => {
         await extrairDadosAutomatico(primeiroPdfCarregado);
-      }, 200);
+      }, 250); // Ajuste leve de tempo para garantir leitura total
     }
   }
 
-  // Máscara visual enquanto digita (mantém padrão R$ XX.XX ou R$ XX,XX conforme preferência de digitação)
   const handleValorChange = (e) => {
-    let v = e.target.value;
-    setValor(v);
+    setValor(e.target.value);
   };
 
   async function generatePDF() {
@@ -451,16 +454,13 @@ function MergeTool() {
       let nomeFinal = "UNIDOC-ProImagem.pdf";
       
       if (prestador || dataPagamento || valor) {
-        // 1. Formata a data de AAAA-MM-DD para DD-MM-AAAA
         const dataFormatada = dataPagamento ? dataPagamento.split('-').reverse().join('-') : "";
         
-        // 2. Garante o formato do valor com PONTO (ex: R$ 1.600.00)
+        // Garante a conversão para pontos na hora de salvar o arquivo (ex: R$ 1.600.00)
         let valorComPonto = valor ? valor.replace(/,/g, '.') : "";
         
         // PADRÃO EXATO EXIGIDO: DATA DE PAGAMENTO; BOLETO E COMPROVANTE; NOME DO PRESTADOR; VALOR
         nomeFinal = `${dataFormatada}; BOLETO E COMPROVANTE; ${prestador || "Prestador"}; ${valorComPonto}.pdf`;
-        
-        // Limpa possíveis espaços duplicados causados pela formatação
         nomeFinal = nomeFinal.replace(/\s+/g, ' ');
       }
 
@@ -490,7 +490,7 @@ function MergeTool() {
         onClick={() => document.getElementById('pdf-input').click()}
       >
         <h3>📂 Arraste seus arquivos PDF</h3>
-        <p>Clique ou arraste para enviar</p>
+        <p>Clique ou abra para enviar</p>
         <input
           id="pdf-input"
           type="file"
